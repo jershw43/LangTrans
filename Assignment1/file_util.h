@@ -1,5 +1,15 @@
 #ifndef FILE_UTIL_H
 #define FILE_UTIL_H
+#include <stdio.h>
+#include <stdbool.h>
+//Define constants:
+#define MAX_FILENAME 256
+#define IN ".IN"
+#define OUT ".OUT"
+#define LIS ".LIS"
+#define BAK ".BAK"
+
+
 
 
 void open_input_file();
