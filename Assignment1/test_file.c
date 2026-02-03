@@ -70,6 +70,27 @@ void open_input_file(int argc, char *argv[]) {
     global_input_file = input_file;
     global_input_opened = 1;
 }
+void create_temp_files() {
+    FILE *fp;
+    
+    // Create temp1.
+    fp = fopen("temp1.IN", "w");
+    if (fp != NULL)
+    {
+        fprintf(fp, "Temporary File 1\n");
+        fclose(fp);
+        printf("Created: temp1.IN\n");
+    }
+    // Create temp2
+    fp = fopen("temp2.IN", "w");
+    if (fp != NULL)
+    {
+        fprintf(fp, "Temporary File 2 \n");
+        fclose(fp);
+        printf("Created: temp2.IN\n");
+    }
+    
+}
 
 int main(int argc, char *argv[]) {
     // Call the function
@@ -80,6 +101,7 @@ int main(int argc, char *argv[]) {
     printf("Filename: %s\n", global_input_filename);
     printf("File pointer: %p\n", (void *)global_input_file);
     printf("Opened status: %d\n", global_input_opened);
+    create_temp_files();
     
     // Try to read and display first line of file
     char buffer[256];

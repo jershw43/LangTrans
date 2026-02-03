@@ -7,7 +7,8 @@ char global_input_filename[256];
 FILE *global_input_file;
 int global_input_opened;
 
-void open_input_file(int argc, char *argv[]) {
+void open_input_file(int argc, char *argv[])
+{
     char filename[256];
     FILE *input_file = NULL;
     int opened = 0;
@@ -78,18 +79,38 @@ void open_listing_file()
 {
 
 }
-void create_temp_files()
-{
-
+//Josh
+void create_temp_files() {
+    FILE *fp;
+    
+    // Create temp1.
+    fp = fopen("temp1.IN", "w");
+    if (fp != NULL) {
+        fprintf(fp, "Temporary File 1\n");
+        fclose(fp);
+        printf("Created: temp1.IN\n");
+    }
+    // Create temp2
+    fp = fopen("temp2.IN", "w");
+    if (fp != NULL)
+    {
+        fprintf(fp, "Temporary File 2 \n");
+        fclose(fp);
+        printf("Created: temp2.IN\n");
+    }
+    
 }
+//Luke
 void validate_names()
 {
 
 }
+//Camron
 void generate_extensions()
 {
 
 }
+//Camron
 void backup_output()
 {
 
