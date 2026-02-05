@@ -28,7 +28,7 @@ void open_input_file(int argc, char *argv[]);
 void open_output_file(int argc, char *argv[]);
 void open_listing_file(void);
 void create_temp_files(void);
-void validate_names(void);
+int validate_names(void);
 void generate_extensions(void);
 void backup_output(void);
 void file_close(void);

@@ -1,5 +1,3 @@
-# Test input file with .TXT extension
-i a
 f b
 a = 5
 b = a + 3.2

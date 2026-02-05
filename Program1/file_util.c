@@ -7,10 +7,12 @@
 char global_input_filename[MAX_FILENAME] = "";
 char global_output_filename[MAX_FILENAME] = "";
 char global_listing_filename[MAX_FILENAME] = "";
+char global_backup_filename[MAX_FILENAME] = "";
 
 FILE *global_input_file  = NULL;
 FILE *global_output_file = NULL;
 FILE *global_listing_file = NULL;
+FILE *global_backup_file = NULL;
 
 int global_input_opened = 0;
 int global_output_opened = 0;
@@ -18,6 +20,7 @@ int global_listing_opened = 0;
 
 void open_input_file(int argc, char *argv[])
 {
+    
     char filename[256];
     FILE *input_file = NULL;
     int opened = 0;
@@ -41,19 +44,14 @@ void open_input_file(int argc, char *argv[])
             // Read user input
             if (fgets(filename, sizeof(filename), stdin) == NULL)
             {
-                printf("\nNo filename entered. Goodbye!\n");
+                printf("\nNo filename entered.\n");
                 exit(0);
             }
             
             // Remove trailing newline if present
             filename[strcspn(filename, "\n")] = '\0';
             
-            // Check for empty input (just Enter pressed)
-            if (filename[0] == '\0')
-            {
-                printf("No filename entered. Goodbye!\n");
-                exit(0);
-            }
+    
         }
         
         // Check if filename has extension
@@ -276,28 +274,43 @@ void create_temp_files()
     FILE *fp;
     
     // Create temp1
-    fp = fopen("temp1.IN", "w");
+    fp = fopen("temp1.tmp", "w");
     if (fp != NULL)
     {
         fprintf(fp, "Temporary File 1\n");
         fclose(fp);
-        printf("Created: temp1.IN\n");
+        printf("Created: temp1.tmp\n");
     }
     // Create temp2
-    fp = fopen("temp2.IN", "w");
+    fp = fopen("temp2.tmp", "w");
     if (fp != NULL)
     {
         fprintf(fp, "Temporary File 2 \n");
         fclose(fp);
-        printf("Created: temp2.IN\n");
+        printf("Created: temp2.tmp\n");
     }
     
 }
 
-// Luke
-void validate_names()
+// Josh
+int validate_names(void)
 {
-
+    if (strcmp(global_input_filename, global_output_filename) == 0)
+{
+    printf("Error: Input file name must be different from output file name.\n");
+    return 0;
+}
+else if (strcmp(global_input_filename, global_listing_filename) == 0)
+{
+    printf("Error: Input file name must be different from listing file name.\n");
+    return 0;
+}
+else if (strcmp(global_input_filename, global_backup_filename) == 0)
+{
+    printf("Error: Input file name must be different from backup file name.\n");
+    return 0;
+}
+return 1;//Valid
 }
 
 // Camron
@@ -371,6 +384,7 @@ void backup_output()
         {
             strcat(backup_name, BAK);
         }
+        
 
         // Remove old backup if it exists
         remove(backup_name);
@@ -399,6 +413,9 @@ void file_close(void)
         fclose(global_listing_file);
         global_listing_file = NULL;
     }
+/* Temp file deletion    
+        remove ("temp1.tmp");
+        remove ("temp2.tmp");
 
-    // temp file deletion will be added later
+    */
 }

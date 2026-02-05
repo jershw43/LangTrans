@@ -25,7 +25,11 @@ int main(int argc, char *argv[]) {
         printf("First line of input file:\n");
         printf("%s%s%s\n", PRINT_ITALIC, buffer, PRINT_RESET);
     }
-
+// fgets previews the first line, setting the pointer there
+//This line resets that pointer to the beginning of file
+rewind(global_input_file);
+do
+{
     // OUTPUT
     open_output_file(argc, argv);
     printf("\n%s[OUTPUT FILE STATUS]%s\n", PRINT_CYAN, PRINT_RESET);
@@ -39,7 +43,17 @@ int main(int argc, char *argv[]) {
     printf("– Filename: %s\n", global_listing_filename);
     printf("– File pointer: %p\n", (void *)global_listing_file);
     printf("– Currently opened: %s\n\n", global_listing_opened ? "true" : "false");
+    
+}
+ while (validate_names());   
+    //Copy input file contents to output file
+    char c;
+    while ((c = fgetc(global_input_file))!= EOF)
+    {
+        fputc(c,global_output_file);
+    }
 
+    create_temp_files();
     // Clean up
     file_close();
     
