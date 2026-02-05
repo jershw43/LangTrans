@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-/* Constants */
+// Constants
 #define PRINT_RED     "\x1b[31m"
 #define PRINT_YELLOW  "\x1b[33m"
 #define PRINT_GREEN   "\x1b[32m"
@@ -18,20 +18,22 @@
 #define LIS ".LIS"
 #define BAK ".BAK"
 
-/* ---------- GLOBAL VARIABLES ---------- */
+// Global variables
 extern char global_input_filename[MAX_FILENAME];
 extern char global_output_filename[MAX_FILENAME];
+extern char global_backup_filename[MAX_FILENAME];
 extern char global_listing_filename[MAX_FILENAME];
 
 extern FILE *global_input_file;
 extern FILE *global_output_file;
+extern FILE *global_backup_file;
 extern FILE *global_listing_file;
 
 extern int global_input_opened;
 extern int global_output_opened;
 extern int global_listing_opened;
 
-/* ---------- FUNCTION PROTOTYPES ---------- */
+// Prototypes
 void open_input_file(int argc, char *argv[]);
 void open_output_file(int argc, char *argv[]);
 void open_listing_file(void);

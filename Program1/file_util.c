@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-// ---------- GLOBAL DEFINITIONS ----------
+// Global definitions
 char global_input_filename[MAX_FILENAME] = "";
 char global_output_filename[MAX_FILENAME] = "";
 char global_listing_filename[MAX_FILENAME] = "";
