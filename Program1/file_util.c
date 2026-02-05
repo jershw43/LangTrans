@@ -419,3 +419,11 @@ void file_close(void)
 
     */
 }
+
+void file_status(char* name, char* filename, FILE *file, int is_opened, char* color)
+{
+    printf("\n%s[%s FILE STATUS]%s\n", color, name, PRINT_RESET);
+    printf("– Filename: %s\n", filename);
+    printf("– File pointer: %p\n", (void *)file);
+    printf("– Currently opened: %s\n\n", is_opened ? "true" : "false");
+}
