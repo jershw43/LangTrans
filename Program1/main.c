@@ -26,10 +26,17 @@ do
     // LISTING
     open_listing_file();
     file_status("LISTING", global_listing_filename, global_listing_file, global_listing_opened, PRINT_YELLOW);
-
+}
+while (!validate_names());
+char c;
+    while ((c = fgetc(global_input_file))!= EOF)
+    {
+        fputc(c,global_output_file);
+    }
     create_temp_files();
     // Clean up
     file_close();
     
     return 0;
 }
+
