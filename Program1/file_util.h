@@ -19,9 +19,13 @@ extern FILE *global_input_file;
 extern FILE *global_output_file;
 extern FILE *global_listing_file;
 
+extern int global_input_opened;
+extern int global_output_opened;
+extern int global_listing_opened;
+
 /* ---------- FUNCTION PROTOTYPES ---------- */
 void open_input_file(int argc, char *argv[]);
-void open_output_file(void);
+void open_output_file(int argc, char *argv[]);
 void open_listing_file(void);
 void create_temp_files(void);
 void validate_names(void);
