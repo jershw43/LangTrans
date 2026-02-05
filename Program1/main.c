@@ -1,3 +1,14 @@
+/*
+	Program name: Assignment 1, File Open Program
+	Course: CMSC 4180, Language Translation
+	Group: #3
+	Members:
+		Shawn Gallagher - GAL82896@pennwest.edu
+		Joshua Watson - WAT93888@pennwest.edu
+		Camron Mellot - MEL98378@pennwest.edu
+		Luke Joseph - JOS60794@pennwest.edu
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "file_util.c"
