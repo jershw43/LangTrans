@@ -1,44 +1,38 @@
 /*
- * main.c
- * CSMC 4180 - Language Translation
- * Scanner Program #2
- * Group #: [GROUP NUMBER]
- * Members: [NAMES & EMAILS]
- *
- * Purpose: Entry point. Handles startup (file opening), drives the
- *          scanner loop, builds output and listing files, and runs
- *          the wrapup routine.
- *
- * NOTE: DO NOT use break, goto, or exit anywhere in this file.
- */
+	Program name: Assignment 1, File Open Program
+	Course: CMSC 4180, Language Translation
+	Group: #3
+	Members:
+		Shawn Gallagher - GAL82896@pennwest.edu
+		Joshua Watson - WAT93888@pennwest.edu
+		Camron Mellot - MEL98378@pennwest.edu
+		Luke Joseph - JOS60794@pennwest.edu
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "file_util.h"
 #include "scanner.h"
 
-/* -------------------------------------------------------
- * FUNCTION PROTOTYPES
- * ------------------------------------------------------- */
 void startup(int argc, char *argv[]);
 void wrapup(void);
 
-/* -------------------------------------------------------
- * main()
- *
- * Flow:
- *   1. Call startup()
- *   2. Loop: call scanner() until SCANEOF is returned
- *       - Each iteration write one line to the OUTPUT file:
- *         "token number: %d token type: %s actual token: %s\n"
- *         using (int)current_token, token_type_to_string(), token_buffer
- *   3. After loop ends, call wrapup()
- * ------------------------------------------------------- */
 int main(int argc, char *argv[])
 {
     printf("\n");
 
-    startup(argc, argv);
+    open_input_file(argc, argv);
+    file_status("INPUT", global_input_filename, global_input_file, global_input_opened);
+
+    do
+    {
+        open_output_file(argc, argv);
+        file_status("OUTPUT", global_output_filename, global_output_file, global_output_opened);
+
+        open_listing_file();
+        file_status("LISTING", global_listing_filename, global_listing_file, global_listing_opened);
+    }
+    while (!validate_names());
 
     /* Scanner loop — scanner() is called repeatedly until SCANEOF.
      * SCANEOF is still written to the output file before the loop ends.
@@ -61,52 +55,6 @@ int main(int argc, char *argv[])
     wrapup();
 
     return 0;
-}
-
-/* -------------------------------------------------------
- * startup()
- * Opens all files, previews the first input line for the
- * user, rewinds so the scanner starts from the beginning,
- * and initializes all scanner globals.
- * ------------------------------------------------------- */
-void startup(int argc, char *argv[])
-{
-    /* --- Open input file (from args or user prompt) --- */
-    open_input_file(argc, argv);
-    file_status("INPUT", global_input_filename, global_input_file, global_input_opened);
-
-    /* Preview first line of input so the user can confirm the right file
-     * was opened. This does NOT consume input for the scanner because
-     * we rewind immediately after. */
-    char buffer[256];
-    if (fgets(buffer, sizeof(buffer), global_input_file) != NULL)
-    {
-        printf("First line of input file:\n");
-        printf("%s\n", buffer);
-    }
-
-    /* Reset file pointer to the beginning so scanner reads from line 1 */
-    rewind(global_input_file);
-
-    /* --- Open output and listing files ---
-     * Wrapped in do-while so that if validate_names() detects a conflict
-     * (e.g. output name == input name) the user is re-prompted.
-     * No exit/goto used; the loop condition drives re-entry. */
-    do
-    {
-        open_output_file(argc, argv);
-        file_status("OUTPUT", global_output_filename, global_output_file, global_output_opened);
-
-        open_listing_file();
-        file_status("LISTING", global_listing_filename, global_listing_file, global_listing_opened);
-    }
-    while (!validate_names());
-
-    /* --- Initialize scanner globals --- */
-    line_number         = 0;
-    lexical_error_count = 0;
-    token_buffer[0]     = '\0';
-    line_buffer[0]      = '\0';
 }
 
 /* -------------------------------------------------------
@@ -157,7 +105,6 @@ void wrapup(void)
     }
     /* remove("temp2.tmp"); */  /* Intentionally left commented out */
 
-    /* --- Close all open file handles --- */
     file_close(global_input_file);
     file_close(global_output_file);
     file_close(global_listing_file);
