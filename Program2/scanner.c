@@ -33,6 +33,7 @@ int      lexical_error_count = 0;
  *       so we don't lose a character after peeking ahead.
  *       Example: static int lookahead = -1;
  */
+static int lookahead = -1;
 
 /* -------------------------------------------------------
  * INTERNAL HELPER PROTOTYPES (not exposed in header)
@@ -48,6 +49,46 @@ int      lexical_error_count = 0;
  *   - Append each character into line_buffer as it's read
  *   - Return the character (or EOF sentinel)
  */
+static char next_char(void)
+{
+    int c = 0;
+    size_t len = 0;
+
+    if (lookahead != -1)
+    {
+        c = lookahead;
+        lookahead = -1;
+    }
+    else
+    {
+        c = fgetc(global_input_file);
+    }
+
+    if (c != EOF)
+    {
+        len = strlen(line_buffer);
+        if (len < sizeof(line_buffer) - 1)
+        {
+            line_buffer[len] = (char)c;
+            line_buffer[len + 1] = '\0';
+        }
+
+        if (c == '\n')
+        {
+            size_t line_len = strlen(line_buffer);
+            if (line_len > 0 && line_buffer[line_len - 1] == '\n')
+            {
+                line_buffer[line_len - 1] = '\0';
+            }
+
+            line_number = line_number + 1;
+            fprintf(global_listing_file, "%d\t%s\n", line_number, line_buffer);
+            line_buffer[0] = '\0';
+        }
+    }
+
+    return (char)c;
+}
 
 /* TODO: static void skip_whitespace(char *c)
  *   - Consume whitespace characters, calling next_char()
