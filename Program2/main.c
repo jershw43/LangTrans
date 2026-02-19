@@ -73,7 +73,7 @@ void startup(int argc, char *argv[])
 {
     /* --- Open input file (from args or user prompt) --- */
     open_input_file(argc, argv);
-    file_status("INPUT", global_input_filename, global_input_file, global_input_opened, PRINT_GREEN);
+    file_status("INPUT", global_input_filename, global_input_file, global_input_opened);
 
     /* Preview first line of input so the user can confirm the right file
      * was opened. This does NOT consume input for the scanner because
@@ -82,7 +82,7 @@ void startup(int argc, char *argv[])
     if (fgets(buffer, sizeof(buffer), global_input_file) != NULL)
     {
         printf("First line of input file:\n");
-        printf("%s%s%s\n", PRINT_ITALIC, buffer, PRINT_RESET);
+        printf("%s\n", buffer);
     }
 
     /* Reset file pointer to the beginning so scanner reads from line 1 */
@@ -95,10 +95,10 @@ void startup(int argc, char *argv[])
     do
     {
         open_output_file(argc, argv);
-        file_status("OUTPUT", global_output_filename, global_output_file, global_output_opened, PRINT_CYAN);
+        file_status("OUTPUT", global_output_filename, global_output_file, global_output_opened);
 
         open_listing_file();
-        file_status("LISTING", global_listing_filename, global_listing_file, global_listing_opened, PRINT_YELLOW);
+        file_status("LISTING", global_listing_filename, global_listing_file, global_listing_opened);
     }
     while (!validate_names());
 
@@ -158,5 +158,7 @@ void wrapup(void)
     /* remove("temp2.tmp"); */  /* Intentionally left commented out */
 
     /* --- Close all open file handles --- */
-    file_close();
+    file_close(global_input_file);
+    file_close(global_output_file);
+    file_close(global_listing_file);
 }

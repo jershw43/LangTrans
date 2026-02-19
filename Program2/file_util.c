@@ -403,35 +403,29 @@ void backup_output()
     }
 }
 
-void file_close(void)
+int file_open(FILE *file, char mode, int is_opened)
 {
-    if (global_input_file != NULL)
+    if (file != NULL)
     {
-        fclose(global_input_file);
-        global_input_file = NULL;
+        fopen(file, mode) ;
+        is_opened = 1;
+        return 1;
     }
-
-    if (global_output_file != NULL)
-    {
-        fclose(global_output_file);
-        global_output_file = NULL;
-    }
-
-    if (global_listing_file != NULL)
-    {
-        fclose(global_listing_file);
-        global_listing_file = NULL;
-    }
-/* Temp file deletion    
-        remove ("temp1.tmp");
-        remove ("temp2.tmp");
-
-    */
+    return 0;
 }
 
-void file_status(char* name, char* filename, FILE *file, int is_opened, char* color)
+void file_close(FILE *file)
 {
-    printf("\n%s[%s FILE STATUS]%s\n", color, name, PRINT_RESET);
+    if (file != NULL)
+    {
+        fclose(file);
+        file = NULL;
+    }
+}
+
+void file_status(char* name, char* filename, FILE *file, int is_opened)
+{
+    printf("\n%s[%s FILE STATUS]%s\n", name);
     printf("– Filename: %s\n", filename);
     printf("– File pointer: %p\n", (void *)file);
     printf("– Currently opened: %s\n\n", is_opened ? "true" : "false");
