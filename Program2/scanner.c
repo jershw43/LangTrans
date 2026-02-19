@@ -29,11 +29,11 @@ int      lexical_error_count = 0;
 /* -------------------------------------------------------
  * INTERNAL / STATIC VARIABLES
  * ------------------------------------------------------- */
+static int lookahead = -1;
 /* TODO: Add a static variable to hold the "lookahead" character
  *       so we don't lose a character after peeking ahead.
  *       Example: static int lookahead = -1;
  */
-static int lookahead = -1;
 
 /* -------------------------------------------------------
  * INTERNAL HELPER PROTOTYPES (not exposed in header)
@@ -89,7 +89,6 @@ static char next_char(void)
 
     return (char)c;
 }
-
 /* TODO: static void skip_whitespace(char *c)
  *   - Consume whitespace characters, calling next_char()
  *   - Stop when a non-whitespace char is found
