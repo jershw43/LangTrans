@@ -89,18 +89,21 @@ static char next_char(void)
 
     return (char)c;
 }
+//Cam
 /* TODO: static void skip_whitespace(char *c)
  *   - Consume whitespace characters, calling next_char()
  *   - Stop when a non-whitespace char is found
  *   - Leave that character in *c for the caller to use
  */
 
+ //Josh
 /* TODO: static void skip_comment(void)
  *   - Called when "--" is detected
  *   - Consume all remaining characters on the current line
  *   - Effectively reads until '\n' or EOF
  */
 
+ //Cam
 /* TODO: static TokenType scan_identifier_or_keyword(char first_char)
  *   - Build token_buffer starting with first_char
  *   - Keep reading alphanumeric / underscore chars via next_char()
@@ -111,12 +114,14 @@ static char next_char(void)
  *   - Return the matching keyword token, or ID if no match
  */
 
+ //Cam
 /* TODO: static TokenType scan_integer(char first_char)
  *   - Build token_buffer starting with first_char
  *   - Keep reading digit characters via next_char()
  *   - Return INTLITERAL
  */
 
+//Josh
 /* TODO: static TokenType scan_operator(char c)
  *   - Handle single and multi-character operators
  *   - Cases to handle:
