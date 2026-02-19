@@ -8,11 +8,17 @@ char global_input_filename[MAX_FILENAME] = "";
 char global_output_filename[MAX_FILENAME] = "";
 char global_listing_filename[MAX_FILENAME] = "";
 char global_backup_filename[MAX_FILENAME] = "";
+char global_temp1_file[MAX_FILENAME] = "";
+char global_temp2_file[MAX_FILENAME] = "";
+
 
 FILE *global_input_file  = NULL;
 FILE *global_output_file = NULL;
 FILE *global_listing_file = NULL;
 FILE *global_backup_file = NULL;
+FILE *global_temp1_file = NULL;
+FILE *global_temp2_file = NULL;
+
 
 int global_input_opened = 0;
 int global_output_opened = 0;
