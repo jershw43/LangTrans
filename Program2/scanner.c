@@ -6,7 +6,7 @@
  * Members: [NAMES & EMAILS]
  *
  * Purpose: Implements the scanner (lexical analyzer). Reads characters
- *          from global_input_file one at a time, builds tokens, and
+ *          from g_input_file one at a time, builds tokens, and
  *          returns the identified TokenType to main.
  */
 
@@ -40,7 +40,7 @@ static int lookahead = -1;
  * ------------------------------------------------------- */
 
 /* TODO: static char next_char(void)
- *   - Pulls next character from global_input_file
+ *   - Pulls next character from g_input_file
  *   - When a newline is read:
  *       1. Increment line_number
  *       2. Write line_buffer to listing file with line number
@@ -61,7 +61,7 @@ static char next_char(void)
     }
     else
     {
-        c = fgetc(global_input_file);
+        c = fgetc(g_input_file);
     }
 
     if (c != EOF)
@@ -82,7 +82,7 @@ static char next_char(void)
             }
 
             line_number = line_number + 1;
-            fprintf(global_listing_file, "%d\t%s\n", line_number, line_buffer);
+            fprintf(g_listing_file, "%d\t%s\n", line_number, line_buffer);
             line_buffer[0] = '\0';
         }
     }

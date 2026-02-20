@@ -4,26 +4,26 @@
 #include <unistd.h>
 
 // Global definitions
-char global_input_filename[MAX_FILENAME] = "";
-char global_output_filename[MAX_FILENAME] = "";
-char global_listing_filename[MAX_FILENAME] = "";
-char global_backup_filename[MAX_FILENAME] = "";
-char global_temp1_filename[MAX_FILENAME] = "temp1.tmp";
-char global_temp2_filename[MAX_FILENAME] = "temp2.tmp";
+FILE *g_input_file  = NULL;
+FILE *g_output_file = NULL;
+FILE *g_listing_file = NULL;
+FILE *g_backup_file = NULL;
+FILE *g_temp1_file = NULL;
+FILE *g_temp2_file = NULL;
 
-FILE *global_input_file  = NULL;
-FILE *global_output_file = NULL;
-FILE *global_listing_file = NULL;
-FILE *global_backup_file = NULL;
-FILE *global_temp1_file = NULL;
-FILE *global_temp2_file = NULL;
+char g_input_filename[MAX_FILENAME] = "";
+char g_output_filename[MAX_FILENAME] = "";
+char g_listing_filename[MAX_FILENAME] = "";
+char g_backup_filename[MAX_FILENAME] = "";
+char g_temp1_filename[MAX_FILENAME] = "temp1.tmp";
+char g_temp2_filename[MAX_FILENAME] = "temp2.tmp";
 
-int global_input_opened = 0;
-int global_output_opened = 0;
-int global_backup_opened = 0;
-int global_listing_opened = 0;
-int global_temp1_opened = 0;
-int global_temp2_opened = 0;
+int g_input_opened = 0;
+int g_output_opened = 0;
+int g_backup_opened = 0;
+int g_listing_opened = 0;
+int g_temp1_opened = 0;
+int g_temp2_opened = 0;
 
 void init_input_file(int argc, char *argv[])
 {
@@ -79,9 +79,9 @@ void init_input_file(int argc, char *argv[])
     }
     
     // Store results in global variables
-    strcpy(global_input_filename, filename);
-    global_input_file = input_file;
-    global_input_opened = 1;
+    strcpy(g_input_filename, filename);
+    g_input_file = input_file;
+    g_input_opened = 1;
 }
 
 void init_output_file(int argc, char *argv[])
@@ -113,7 +113,7 @@ void init_output_file(int argc, char *argv[])
             {
                 printf("\nNo filename entered. Using default from input file.\n");
                 // Generate from input filename
-                strcpy(filename, global_input_filename);
+                strcpy(filename, g_input_filename);
                 char *dot = strrchr(filename, '.');
                 if (dot != NULL)
                 {
@@ -134,7 +134,7 @@ void init_output_file(int argc, char *argv[])
                 {
                     printf("No filename entered. Using default from input file.\n");
                     // Generate from input filename
-                    strcpy(filename, global_input_filename);
+                    strcpy(filename, g_input_filename);
                     char *dot = strrchr(filename, '.');
                     if (dot != NULL)
                     {
@@ -184,17 +184,17 @@ void init_output_file(int argc, char *argv[])
                         overwrite_allowed = 1;
                         // Backup the existing file
                         char temp[MAX_FILENAME];
-                        strcpy(temp, global_output_filename);
-                        strcpy(global_output_filename, filename);
+                        strcpy(temp, g_output_filename);
+                        strcpy(g_output_filename, filename);
                         backup_output();
-                        strcpy(global_output_filename, temp);
+                        strcpy(g_output_filename, temp);
                         
                         // Now open for writing
                         output_file = fopen(filename, "w");
                         if (output_file == NULL)
                         {
                             printf("Error: Cannot open file '%s' for writing\n", filename);
-                            printf("Please try again.\n\n");
+                            printf("Please try again.\n");
                             got_filename_from_args = 0;
                             choice_made = 1;  // Exit choice loop, retry outer loop
                         }
@@ -217,7 +217,7 @@ void init_output_file(int argc, char *argv[])
                     }
                     else
                     {
-                        printf("Invalid choice. Please try again.\n\n");
+                        printf("Invalid choice. Please try again.\n");
                         // choice_made remains 0, loop again for choice
                     }
                 }
@@ -241,58 +241,59 @@ void init_output_file(int argc, char *argv[])
     }
 
     // Store results in global variables
-    strcpy(global_output_filename, filename);
-    global_output_file = output_file;
-    global_output_opened = 1;
+    strcpy(g_output_filename, filename);
+    g_output_file = output_file;
+    g_output_opened = 1;
+
+    printf("\n");
 }
 
 void init_listing_file()
 {
     // Derive listing filename from output filename
-    strcpy(global_listing_filename, global_output_filename);
-    char *dot = strrchr(global_listing_filename, '.');
+    strcpy(g_listing_filename, g_output_filename);
+    char *dot = strrchr(g_listing_filename, '.');
     if (dot != NULL)
     {
         strcpy(dot, LIS);
     }
     else
     {
-        strcat(global_listing_filename, LIS);
+        strcat(g_listing_filename, LIS);
     }
 }
 
 void init_temp_files()
 {
     // Temp 1
-    file_open(global_temp1_file, "w", global_temp1_opened);
-    fprintf(global_temp1_file, "The Temp\n");
-    file_open(global_temp1_file, "r", global_temp1_opened);
+    file_open(&g_temp1_file, g_temp1_filename, "w", &g_temp1_opened);
+    fprintf(g_temp1_file, "The Temp\n");
     char ch;
-    while ((ch = (char)fgetc(global_temp1_file)) != EOF)
+    while ((ch = (char)fgetc(g_temp1_file)) != EOF)
     {
-        fputc(ch, global_output_file);
+        fputc(ch, g_output_file);
     }
-    file_close(global_temp1_file, global_temp1_opened);
+    file_close(&g_temp1_file, &g_temp1_opened);
 
     // Temp 2
-    file_open(global_temp2_file, "w", global_temp2_opened);
-    fprintf(global_temp2_file, "Loop Information\n");
-    file_close(global_temp2_file, global_temp2_opened);
+    file_open(&g_temp2_file, g_temp2_filename, "w", &g_temp2_opened);
+    fprintf(g_temp2_file, "Loop Information\n");
+    file_close(&g_temp2_file, &g_temp2_opened);
 }
 
 int validate_names(void)
 {
-    if (strcmp(global_input_filename, global_output_filename) == 0)
+    if (strcmp(g_input_filename, g_output_filename) == 0)
     {
         printf("Error: Input file name must be different from output file name.\n");
         return 0;
     }
-    else if (strcmp(global_input_filename, global_listing_filename) == 0)
+    else if (strcmp(g_input_filename, g_listing_filename) == 0)
     {
         printf("Error: Input file name must be different from listing file name.\n");
         return 0;
     }
-    else if (strcmp(global_input_filename, global_backup_filename) == 0)
+    else if (strcmp(g_input_filename, g_backup_filename) == 0)
     {
         printf("Error: Input file name must be different from backup file name.\n");
         return 0;
@@ -305,17 +306,17 @@ void generate_extensions()
     char *dot;
 
     // Input
-    dot = strrchr(global_input_filename, '.');
+    dot = strrchr(g_input_filename, '.');
     if (dot == NULL)
     {
-        strcat(global_input_filename, IN);
+        strcat(g_input_filename, IN);
     }
 
     // Output
-    if (global_output_filename[0] == '\0')
+    if (g_output_filename[0] == '\0')
     {
-        strcpy(global_output_filename, global_input_filename);
-        dot = strrchr(global_output_filename, '.');
+        strcpy(g_output_filename, g_input_filename);
+        dot = strrchr(g_output_filename, '.');
         if (dot != NULL)
         {
             strcpy(dot, OUT);
@@ -323,16 +324,16 @@ void generate_extensions()
     }
     else
     {
-        dot = strrchr(global_output_filename, '.');
+        dot = strrchr(g_output_filename, '.');
         if (dot == NULL)
         {
-            strcat(global_output_filename, OUT);
+            strcat(g_output_filename, OUT);
         }
     }
 
     // Listing
-    strcpy(global_listing_filename, global_output_filename);
-    dot = strrchr(global_listing_filename, '.');
+    strcpy(g_listing_filename, g_output_filename);
+    dot = strrchr(g_listing_filename, '.');
     if (dot != NULL)
     {
         strcpy(dot, LIS);
@@ -341,12 +342,11 @@ void generate_extensions()
 
 void backup_output()
 {
-    FILE *fp;
     char backup_name[MAX_FILENAME];
     char *dot;
 
     // Build backup filename
-    strcpy(backup_name, global_output_filename);
+    strcpy(backup_name, g_output_filename);
     dot = strrchr(backup_name, '.');
     if (dot != NULL)
     {
@@ -361,41 +361,45 @@ void backup_output()
     remove(backup_name);
 
     // Rename current output to backup
-    rename(global_output_filename, backup_name);
+    rename(g_output_filename, backup_name);
 }
 
-int file_open(FILE *file, char mode, int is_opened)
+int file_open(FILE **file, const char *filename, const char *mode, int *is_opened)
 {
-    if (file != NULL)
+    if (file == NULL || filename == NULL || mode == NULL || is_opened == NULL) return 0;
+
+    *file = fopen(filename, mode);
+    if (*file != NULL)
     {
-        fopen(file, mode);
-        is_opened = 1;
+        *is_opened = 1;
         return 1;
     }
+    *is_opened = 0;
+
     return 0;
 }
 
-void file_close(FILE *file, int is_opened)
+void file_close(FILE **file, int *is_opened)
 {
-    if (file != NULL)
+    if (file != NULL && *file != NULL)
     {
-        fclose(file);
-        file = NULL;
-        is_opened = 0;
+        fclose(*file);
+        *file = NULL;
+        *is_opened = 0;
     }
 }
 
-void file_delete(FILE *file, char* filename, int is_opened)
+void file_delete(FILE **file, const char *filename, int *is_opened)
 {
     remove(filename);
-    file = NULL;
-    is_opened = 0;
+    if (file != NULL) *file = NULL;
+    *is_opened = 0;
 }
 
-void file_status(char* name, char* filename, FILE *file, int is_opened)
+void file_status(const char *name, const char *filename, FILE *file, int *is_opened)
 {
-    printf("\n[%s FILE STATUS]\n", name);
-    printf("– Filename: %s\n", filename);
+    printf("[%s FILE STATUS]\n", name ? name : "(null)");
+    printf("– Filename: %s\n", filename ? filename : "(null)");
     printf("– File pointer: %p\n", (void *)file);
-    printf("– Currently opened: %s\n\n", is_opened ? "true" : "false");
+    printf("– Currently opened: %s\n", (is_opened && *is_opened) ? "true" : "false");
 }

@@ -85,7 +85,7 @@ extern int     lexical_error_count;
 /* -------------------------------------------------------
  * FUNCTION PROTOTYPE
  *
- * scanner() - reads from global_input_file, sets
+ * scanner() - reads from g_input_file, sets
  *             current_token and token_buffer, and
  *             returns the TokenType found.
  * ------------------------------------------------------- */
