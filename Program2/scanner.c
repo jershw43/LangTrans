@@ -95,7 +95,18 @@ static char next_char(void)
  *   - Stop when a non-whitespace char is found
  *   - Leave that character in *c for the caller to use
  */
+static void skip_whitespace(char *c)
+{
+    // Read the first character to start the check
+    *c = next_char();
 
+    // Keep reading while the character is whitespace
+    while (*c != (char)EOF && isspace((unsigned char)*c))
+    {
+        *c = next_char();
+    }
+    // *c now holds the first non-whitespace character (or EOF)
+}
 //Josh
 static void skip_comment(void)
 {
@@ -107,23 +118,94 @@ static void skip_comment(void)
     } while (c != '\n' && c != EOF);
 }
 
- //Cam
-/* TODO: static TokenType scan_identifier_or_keyword(char first_char)
- *   - Build token_buffer starting with first_char
- *   - Keep reading alphanumeric / underscore chars via next_char()
- *   - When done, compare token_buffer (case-insensitive?) against
- *     all reserved words:
- *       begin, end, read, write, if, then, else, endif,
- *       while, endwhile, false, true, null, and, or
- *   - Return the matching keyword token, or ID if no match
- */
+ static TokenType scan_identifier_or_keyword(char first_char)
+{
+    int  idx = 0;
+    char c;
 
- //Cam
-/* TODO: static TokenType scan_integer(char first_char)
- *   - Build token_buffer starting with first_char
- *   - Keep reading digit characters via next_char()
- *   - Return INTLITERAL
- */
+    /* --- Build the token string in token_buffer --- */
+
+    // Store the first character already read by the caller
+    token_buffer[idx++] = first_char;
+
+    // Continue reading while we see letters, digits, or '_'
+    c = next_char();
+    while (c != (char)EOF && (isalnum((unsigned char)c) || c == '_'))
+    {
+        if (idx < TOKEN_BUFFER_SIZE - 1)
+        {
+            token_buffer[idx++] = c;
+        }
+        c = next_char();
+    }
+
+    /* The character that ended the identifier is NOT part of this
+     * token. Save it as the lookahead for the next scanner call. */
+    if (c != (char)EOF)
+    {
+        lookahead = (unsigned char)c;
+    }
+
+    // Null-terminate
+    token_buffer[idx] = '\0';
+
+    /* --- Reserved-word comparison (case-insensitive) --- */
+
+    if      (strcasecmp(token_buffer, "begin")    == 0) { return BEGIN;    }
+    else if (strcasecmp(token_buffer, "end")      == 0) { return END;      }
+    else if (strcasecmp(token_buffer, "read")     == 0) { return READ;     }
+    else if (strcasecmp(token_buffer, "write")    == 0) { return WRITE;    }
+    else if (strcasecmp(token_buffer, "if")       == 0) { return IF;       }
+    else if (strcasecmp(token_buffer, "then")     == 0) { return THEN;     }
+    else if (strcasecmp(token_buffer, "else")     == 0) { return ELSE;     }
+    else if (strcasecmp(token_buffer, "endif")    == 0) { return ENDIF;    }
+    else if (strcasecmp(token_buffer, "while")    == 0) { return WHILE;    }
+    else if (strcasecmp(token_buffer, "endwhile") == 0) { return ENDWHILE; }
+    else if (strcasecmp(token_buffer, "false")    == 0) { return FALSEOP;  }
+    else if (strcasecmp(token_buffer, "true")     == 0) { return TRUEOP;   }
+    else if (strcasecmp(token_buffer, "null")     == 0) { return NULLOP;   }
+    else if (strcasecmp(token_buffer, "and")      == 0) { return ANDOP;    }
+    else if (strcasecmp(token_buffer, "or")       == 0) { return OROP;     }
+    else
+    {
+        /* Not a keyword — it is a user-defined identifier */
+        return ID;
+    }
+}
+
+//Cam
+static TokenType scan_integer(char first_char)
+{
+    int  idx = 0;
+    char c;
+
+    // Store the leading digit already supplied by the caller
+    token_buffer[idx++] = first_char;
+
+    // Keep reading digits
+    c = next_char();
+    while (c != (char)EOF && isdigit((unsigned char)c))
+    {
+        if (idx < TOKEN_BUFFER_SIZE - 1)
+        {
+            token_buffer[idx++] = c;
+        }
+        c = next_char();
+    }
+
+    /* The character that ended the integer literal is NOT part of
+     * this token. Save it as lookahead.                          */
+    if (c != (char)EOF)
+    {
+        lookahead = (unsigned char)c;
+    }
+
+    // Null-terminate
+    token_buffer[idx] = '\0';
+
+    return INTLITERAL;
+}
+
 //Josh
 static TokenType scan_operator(char c)
 {
