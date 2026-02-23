@@ -96,6 +96,7 @@ static char next_char(void)
  *   - Leave that character in *c for the caller to use
  */
 
+//Josh
 static void skip_comment(void)
 {
     char c;
@@ -123,7 +124,7 @@ static void skip_comment(void)
  *   - Keep reading digit characters via next_char()
  *   - Return INTLITERAL
  */
-
+//Josh
 static TokenType scan_operator(char c)
 {
     char n;
@@ -141,7 +142,7 @@ static TokenType scan_operator(char c)
                 lookahead = (unsigned char)n;
             }
             lexical_error_count = lexical_error_count + 1;
-            fprintf(global_listing_file, "Lexical Error (line %d): unexpected ':'\n", line_number);
+            fprintf(g_listing_file, "Lexical Error (line %d): unexpected ':'\n", line_number);
             return ERROR;
 
         case '<':
@@ -214,7 +215,7 @@ static TokenType scan_operator(char c)
 
         default:
             lexical_error_count = lexical_error_count + 1;
-            fprintf(global_listing_file, "Lexical Error (line %d): unexpected character '%c'\n", line_number, c);
+            fprintf(g_listing_file, "Lexical Error (line %d): unexpected character '%c'\n", line_number, c);
             return ERROR;
     }
 }
