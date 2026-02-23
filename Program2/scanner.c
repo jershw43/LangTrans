@@ -96,12 +96,15 @@ static char next_char(void)
  *   - Leave that character in *c for the caller to use
  */
 
- //Josh
-/* TODO: static void skip_comment(void)
- *   - Called when "--" is detected
- *   - Consume all remaining characters on the current line
- *   - Effectively reads until '\n' or EOF
- */
+static void skip_comment(void)
+{
+    char c;
+
+    do
+    {
+        c = next_char();
+    } while (c != '\n' && c != EOF);
+}
 
  //Cam
 /* TODO: static TokenType scan_identifier_or_keyword(char first_char)
@@ -121,28 +124,100 @@ static char next_char(void)
  *   - Return INTLITERAL
  */
 
-//Josh
-/* TODO: static TokenType scan_operator(char c)
- *   - Handle single and multi-character operators
- *   - Cases to handle:
- *       ':'  -> peek for '=' -> ASSIGNOP (":=") or ERROR
- *       '<'  -> peek for '=' -> LESSEQUALOP, or '>' -> NOTEQUALOP, else LESSOP
- *       '>'  -> peek for '=' -> GREATEREQUALOP, else GREATEROP
- *       '+'  -> PLUSOP
- *       '-'  -> peek for second '-' -> comment (call skip_comment, re-enter scanner)
- *                otherwise MINUSOP
- *       '*'  -> MULTOP
- *       '/'  -> DIVOP
- *       '!'  -> NOTOP
- *       '='  -> EQUALOP
- *       '('  -> LPAREN
- *       ')'  -> RPAREN
- *       ';'  -> SEMICOLON
- *       ','  -> COMMA
- *       anything else -> ERROR (log to listing file)
- *   - For PEEK operations: read the next char; if it doesn't complete
- *     the two-char token, save it as the lookahead for next call
- */
+static TokenType scan_operator(char c)
+{
+    char n;
+
+    switch (c)
+    {
+        case ':':
+            n = next_char();
+            if (n == '=')
+            {
+                return ASSIGNOP;
+            }
+            if (n != EOF)
+            {
+                lookahead = (unsigned char)n;
+            }
+            lexical_error_count = lexical_error_count + 1;
+            fprintf(global_listing_file, "Lexical Error (line %d): unexpected ':'\n", line_number);
+            return ERROR;
+
+        case '<':
+            n = next_char();
+            if (n == '=')
+            {
+                return LESSEQUALOP;
+            }
+            if (n == '>')
+            {
+                return NOTEQUALOP;
+            }
+            if (n != EOF)
+            {
+                lookahead = (unsigned char)n;
+            }
+            return LESSOP;
+
+        case '>':
+            n = next_char();
+            if (n == '=')
+            {
+                return GREATEREQUALOP;
+            }
+            if (n != EOF)
+            {
+                lookahead = (unsigned char)n;
+            }
+            return GREATEROP;
+
+        case '+':
+            return PLUSOP;
+
+        case '-':
+            n = next_char();
+            if (n == '-')
+            {
+                skip_comment();
+                return scanner();
+            }
+            if (n != EOF)
+            {
+                lookahead = (unsigned char)n;
+            }
+            return MINUSOP;
+
+        case '*':
+            return MULTOP;
+
+        case '/':
+            return DIVOP;
+
+        case '!':
+            return NOTOP;
+
+        case '=':
+            return EQUALOP;
+
+        case '(':
+            return LPAREN;
+
+        case ')':
+            return RPAREN;
+
+        case ';':
+            return SEMICOLON;
+
+        case ',':
+            return COMMA;
+
+        default:
+            lexical_error_count = lexical_error_count + 1;
+            fprintf(global_listing_file, "Lexical Error (line %d): unexpected character '%c'\n", line_number, c);
+            return ERROR;
+    }
+}
 
 /* -------------------------------------------------------
  * token_type_to_string()
