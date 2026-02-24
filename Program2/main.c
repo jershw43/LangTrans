@@ -40,14 +40,16 @@ int main(int argc, char *argv[])
     while (!validate_names());
 
     // Scanner
-    /* TokenType tok;
+    TokenType tok;
     do
     {
         tok = scanner();
         fprintf(g_output_file, "token number: %d token type: %s actual token: %s\n", (int)tok, token_type_to_string(tok), token_buffer);
     } while (tok != SCANEOF);
-
-    fprintf(g_listing_file, "%d Lexical Errors.\n", lexical_error_count); */
+    fprintf(g_listing_file, "%d Lexical Errors.\n", lexical_error_count);
+    printf("\n");
+    printf("Scanner successfully completed!");
+    printf("\n");
 
     // Temp files
     init_temp_files();
