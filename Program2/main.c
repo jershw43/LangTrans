@@ -14,10 +14,8 @@
 #include "file_util.h"
 #include "scanner.h"
 
-int main(int argc, char *argv[])
+void startup(int argc, char *argv[])
 {
-    printf("\n");
-
     // Input
     init_input_file(argc, argv);
     file_open(&g_input_file, g_input_filename, "r", &g_input_opened);
@@ -38,6 +36,27 @@ int main(int argc, char *argv[])
         file_status("LISTING", g_listing_filename, g_listing_file, &g_listing_opened);
     }
     while (!validate_names());
+}
+
+void wrapup()
+{
+    // Close everything
+    file_close(&g_input_file, &g_input_opened);
+    file_close(&g_output_file, &g_output_opened);
+    file_close(&g_listing_file, &g_listing_opened);
+    file_close(&g_temp1_file, &g_temp1_opened);
+    file_close(&g_temp2_file, &g_temp2_opened);
+
+    // Delete temp files
+    file_delete(&g_temp1_file, g_temp1_filename, &g_temp1_opened);
+    // file_delete(g_temp2_file, g_temp2_filename, g_temp2_opened);
+}
+
+int main(int argc, char *argv[])
+{
+    printf("\n");
+
+    startup(argc, argv);
 
     // Scanner
     TokenType tok;
@@ -54,16 +73,7 @@ int main(int argc, char *argv[])
     // Temp files
     init_temp_files();
 
-    // Close everything
-    file_close(&g_input_file, &g_input_opened);
-    file_close(&g_output_file, &g_output_opened);
-    file_close(&g_listing_file, &g_listing_opened);
-    file_close(&g_temp1_file, &g_temp1_opened);
-    file_close(&g_temp2_file, &g_temp2_opened);
-
-    // Delete temp files
-    file_delete(&g_temp1_file, g_temp1_filename, &g_temp1_opened);
-    // file_delete(g_temp2_file, g_temp2_filename, g_temp2_opened);
+    wrapup();
 
     printf("\n");
 
