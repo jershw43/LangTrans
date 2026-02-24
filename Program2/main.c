@@ -1,5 +1,5 @@
 /*
-	Program name: Assignment 1, File Open Program
+	Program name: Program 2, Scanner Program
 	Course: CMSC 4180, Language Translation
 	Group: #3
 	Members:
