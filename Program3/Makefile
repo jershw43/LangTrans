@@ -1,8 +1,8 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -g
-DEPS = file_util.h scanner.h
-OBJ = main.o file_util.o scanner.o
-TARGET = Program2
+DEPS = file_util.h scanner.h parser.h
+OBJ = main.o file_util.o scanner.o parser.o
+TARGET = Program3
 
 all: $(TARGET)
 
