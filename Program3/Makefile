@@ -1,8 +1,8 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -g
-DEPS = file_util.h scanner.h
-OBJ = main.o file_util.o scanner.o
-TARGET = Program2
+DEPS = file_util.h scanner.h parser.h
+OBJ = main.o file_util.o scanner.o parser.o
+TARGET = Program3
 
 all: $(TARGET)
 
@@ -15,10 +15,10 @@ $(TARGET): $(OBJ)
 clean:
 ifeq ($(OS),Windows_NT)
 	@del /Q $(OBJ) $(TARGET) 2>nul || true
-	for %f in (*.txt *.lis *.bak *.tmp) do if /i not "%f"=="input.txt" del "%f"
+	@for %f in (*.lis *.bak *.tmp) do del "%f"
 else
 	@rm -f $(OBJ) $(TARGET)
-	@rm -f $(filter-out input.txt,$(wildcard *.txt)) *.lis *.bak *.tmp
+	@rm -f *.lis *.bak *.tmp
 endif
 
 .PHONY: all clean

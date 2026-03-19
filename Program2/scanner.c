@@ -1,54 +1,17 @@
-/*
- * scanner.c
- * CSMC 4180 - Language Translation
- * Scanner Program #2
- * Group #: [GROUP NUMBER]
- * Members: [NAMES & EMAILS]
- *
- * Purpose: Implements the scanner (lexical analyzer). Reads characters
- *          from g_input_file one at a time, builds tokens, and
- *          returns the identified TokenType to main.
- */
-
 #include "scanner.h"
 #include "file_util.h"
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
-/* -------------------------------------------------------
- * GLOBAL VARIABLE DEFINITIONS
- * (declared extern in scanner.h)
- * ------------------------------------------------------- */
-char     token_buffer[TOKEN_BUFFER_SIZE];
+// Global variables
+char token_buffer[TOKEN_BUFFER_SIZE];
 TokenType current_token;
-char     line_buffer[512];
-int      line_number        = 0;
-int      lexical_error_count = 0;
-
-/* -------------------------------------------------------
- * INTERNAL / STATIC VARIABLES
- * ------------------------------------------------------- */
+char line_buffer[512];
+int line_number = 0;
+int lexical_error_count = 0;
 static int lookahead = -1;
-/* TODO: Add a static variable to hold the "lookahead" character
- *       so we don't lose a character after peeking ahead.
- *       Example: static int lookahead = -1;
- */
 
-/* -------------------------------------------------------
- * INTERNAL HELPER PROTOTYPES (not exposed in header)
- * ------------------------------------------------------- */
-
-/* TODO: static char next_char(void)
- *   - Pulls next character from g_input_file
- *   - When a newline is read:
- *       1. Increment line_number
- *       2. Write line_buffer to listing file with line number
- *          Format: "%d\t%s\n", line_number, line_buffer
- *       3. Reset line_buffer to empty
- *   - Append each character into line_buffer as it's read
- *   - Return the character (or EOF sentinel)
- */
 static char next_char(void)
 {
     int c = 0;
@@ -89,95 +52,290 @@ static char next_char(void)
 
     return (char)c;
 }
-//Cam
-/* TODO: static void skip_whitespace(char *c)
- *   - Consume whitespace characters, calling next_char()
- *   - Stop when a non-whitespace char is found
- *   - Leave that character in *c for the caller to use
- */
 
- //Josh
-/* TODO: static void skip_comment(void)
- *   - Called when "--" is detected
- *   - Consume all remaining characters on the current line
- *   - Effectively reads until '\n' or EOF
- */
-
- //Cam
-/* TODO: static TokenType scan_identifier_or_keyword(char first_char)
- *   - Build token_buffer starting with first_char
- *   - Keep reading alphanumeric / underscore chars via next_char()
- *   - When done, compare token_buffer (case-insensitive?) against
- *     all reserved words:
- *       begin, end, read, write, if, then, else, endif,
- *       while, endwhile, false, true, null, and, or
- *   - Return the matching keyword token, or ID if no match
- */
-
- //Cam
-/* TODO: static TokenType scan_integer(char first_char)
- *   - Build token_buffer starting with first_char
- *   - Keep reading digit characters via next_char()
- *   - Return INTLITERAL
- */
-
-//Josh
-/* TODO: static TokenType scan_operator(char c)
- *   - Handle single and multi-character operators
- *   - Cases to handle:
- *       ':'  -> peek for '=' -> ASSIGNOP (":=") or ERROR
- *       '<'  -> peek for '=' -> LESSEQUALOP, or '>' -> NOTEQUALOP, else LESSOP
- *       '>'  -> peek for '=' -> GREATEREQUALOP, else GREATEROP
- *       '+'  -> PLUSOP
- *       '-'  -> peek for second '-' -> comment (call skip_comment, re-enter scanner)
- *                otherwise MINUSOP
- *       '*'  -> MULTOP
- *       '/'  -> DIVOP
- *       '!'  -> NOTOP
- *       '='  -> EQUALOP
- *       '('  -> LPAREN
- *       ')'  -> RPAREN
- *       ';'  -> SEMICOLON
- *       ','  -> COMMA
- *       anything else -> ERROR (log to listing file)
- *   - For PEEK operations: read the next char; if it doesn't complete
- *     the two-char token, save it as the lookahead for next call
- */
-
-/* -------------------------------------------------------
- * token_type_to_string()
- * Maps TokenType enum -> string name for output file
- * ------------------------------------------------------- */
-const char *token_type_to_string(TokenType t)
+static void skip_whitespace(char *c)
 {
-    /* TODO: Implement with a switch statement or string array
-     * Example:
-     *   case BEGIN: return "BEGIN";
-     *   case END:   return "END";
-     *   ...
-     *   default:    return "UNKNOWN";
-     */
-    return "UNKNOWN"; /* placeholder */
+    // Read the first character to start the check
+    *c = next_char();
+
+    // Keep reading while the character is whitespace
+    while (*c != (char)EOF && isspace((unsigned char)*c))
+    {
+        *c = next_char();
+    }
+    // *c now holds the first non-whitespace character (or EOF)
 }
 
-/* -------------------------------------------------------
- * scanner()
- * Main scanner function called repeatedly from main.
- *
- * Flow:
- *   1. Skip whitespace
- *   2. Check for EOF -> return SCANEOF
- *   3. If letter -> scan_identifier_or_keyword()
- *   4. If digit  -> scan_integer()
- *   5. Otherwise -> scan_operator()
- *   6. Set current_token and return it
- *
- * NOTE: DO NOT use break, goto, or exit anywhere.
- * ------------------------------------------------------- */
+static void skip_comment(void)
+{
+    char c;
+
+    do
+    {
+        c = next_char();
+    } while (c != '\n' && c != EOF);
+}
+
+static TokenType scan_identifier_or_keyword(char first_char)
+{
+    int  idx = 0;
+    char c;
+
+    // Store the first character already read by the caller
+    token_buffer[idx++] = first_char;
+
+    // Continue reading while we see letters, digits, or '_'
+    c = next_char();
+    while (c != (char)EOF && (isalnum((unsigned char)c) || c == '_'))
+    {
+        if (idx < TOKEN_BUFFER_SIZE - 1)
+        {
+            token_buffer[idx++] = c;
+        }
+        c = next_char();
+    }
+
+    // The character that ended the identifier is NOT part of this token
+    // Save it as the lookahead for the next scanner call
+    if (c != (char)EOF)
+    {
+        lookahead = (unsigned char)c;
+    }
+
+    // Null-terminate
+    token_buffer[idx] = '\0';
+
+    // Reserved-word comparison
+    if      (strcasecmp(token_buffer, "begin")    == 0) { return BEGIN;    }
+    else if (strcasecmp(token_buffer, "end")      == 0) { return END;      }
+    else if (strcasecmp(token_buffer, "read")     == 0) { return READ;     }
+    else if (strcasecmp(token_buffer, "write")    == 0) { return WRITE;    }
+    else if (strcasecmp(token_buffer, "if")       == 0) { return IF;       }
+    else if (strcasecmp(token_buffer, "then")     == 0) { return THEN;     }
+    else if (strcasecmp(token_buffer, "else")     == 0) { return ELSE;     }
+    else if (strcasecmp(token_buffer, "endif")    == 0) { return ENDIF;    }
+    else if (strcasecmp(token_buffer, "while")    == 0) { return WHILE;    }
+    else if (strcasecmp(token_buffer, "endwhile") == 0) { return ENDWHILE; }
+    else if (strcasecmp(token_buffer, "false")    == 0) { return FALSEOP;  }
+    else if (strcasecmp(token_buffer, "true")     == 0) { return TRUEOP;   }
+    else if (strcasecmp(token_buffer, "null")     == 0) { return NULLOP;   }
+    else if (strcasecmp(token_buffer, "and")      == 0) { return ANDOP;    }
+    else if (strcasecmp(token_buffer, "or")       == 0) { return OROP;     }
+    else
+    {
+        // Not a keyword
+        return ID;
+    }
+}
+
+static TokenType scan_integer(char first_char)
+{
+    int  idx = 0;
+    char c;
+
+    // Store the leading digit already supplied by the caller
+    token_buffer[idx++] = first_char;
+
+    // Keep reading digits
+    c = next_char();
+    while (c != (char)EOF && isdigit((unsigned char)c))
+    {
+        if (idx < TOKEN_BUFFER_SIZE - 1)
+        {
+            token_buffer[idx++] = c;
+        }
+        c = next_char();
+    }
+
+    // The character that ended the integer literal is NOT part of this token
+    // Save it as lookahead
+    if (c != (char)EOF)
+    {
+        lookahead = (unsigned char)c;
+    }
+
+    // Null-terminate
+    token_buffer[idx] = '\0';
+
+    return INTLITERAL;
+}
+
+static TokenType scan_operator(char c)
+{
+    char n;
+
+    // Put first character into the token buffer
+    token_buffer[0] = c;
+    token_buffer[1] = '\0';
+
+    switch (c)
+    {
+        case ':':
+            n = next_char();
+            if (n == '=')
+            {
+                token_buffer[1] = '=';
+                token_buffer[2] = '\0';
+                return ASSIGNOP;
+            }
+            if (n != EOF)
+            {
+                lookahead = (unsigned char)n;
+            }
+            lexical_error_count = lexical_error_count + 1;
+            fprintf(g_listing_file, "Error. ':' not recognized in line %d.\n", line_number + 1);
+            return ERROR;
+
+        case '<':
+            n = next_char();
+            if (n == '=')
+            {
+                token_buffer[1] = '=';
+                token_buffer[2] = '\0';
+                return LESSEQUALOP;
+            }
+            if (n == '>')
+            {
+                token_buffer[1] = '>';
+                token_buffer[2] = '\0';
+                return NOTEQUALOP;
+            }
+            if (n != EOF)
+            {
+                lookahead = (unsigned char)n;
+            }
+            return LESSOP;
+
+        case '>':
+            n = next_char();
+            if (n == '=')
+            {
+                token_buffer[1] = '=';
+                token_buffer[2] = '\0';
+                return GREATEREQUALOP;
+            }
+            if (n != EOF)
+            {
+                lookahead = (unsigned char)n;
+            }
+            return GREATEROP;
+
+        case '+':
+            return PLUSOP;
+
+        case '-':
+            n = next_char();
+            if (n == '-')
+            {
+                /* comment start; consume until end-of-line then start over */
+                skip_comment();
+                return scanner();
+            }
+            if (n != EOF)
+            {
+                lookahead = (unsigned char)n;
+            }
+            return MINUSOP;
+
+        case '*':
+            return MULTOP;
+
+        case '/':
+            return DIVOP;
+
+        case '!':
+            return NOTOP;
+
+        case '=':
+            return EQUALOP;
+
+        case '(':
+            return LPAREN;
+
+        case ')':
+            return RPAREN;
+
+        case ';':
+            return SEMICOLON;
+
+        case ',':
+            return COMMA;
+
+        default:
+            lexical_error_count = lexical_error_count + 1;
+            fprintf(g_listing_file, "Error. '%c' not recognized in line %d.\n", c, line_number + 1);
+            return ERROR;
+    }
+}
+
+const char *token_type_to_string(TokenType t)
+{
+    switch (t) {
+        case BEGIN: return "BEGIN";
+        case END: return "END";
+        case READ: return "READ";
+        case WRITE: return "WRITE";
+        case ID: return "ID";
+        case IF: return "IF";
+        case THEN: return "THEN";
+        case ELSE: return "ELSE";
+        case SEMICOLON: return "SEMICOLON";
+        case COMMA: return "COMMA";
+        case ASSIGNOP: return "ASSIGNOP";
+        case ENDIF: return "ENDIF";
+        case WHILE: return "WHILE";
+        case SCANEOF: return "SCANEOF";
+        case ERROR: return "ERROR";
+        case INTLITERAL: return "INTLITERAL";
+        case FALSEOP: return "FALSEOP";
+        case TRUEOP: return "TRUEOP";
+        case NULLOP: return "NULLOP";
+        case LPAREN: return "LPAREN";
+        case RPAREN: return "RPAREN";
+        case PLUSOP: return "PLUSOP";
+        case MINUSOP: return "MINUSOP";
+        case MULTOP: return "MULTOP";
+        case DIVOP: return "DIVOP";
+        case NOTOP: return "NOTOP";
+        case LESSOP: return "LESSOP";
+        case LESSEQUALOP: return "LESSEQUALOP";
+        case GREATEROP: return "GREATEROP";
+        case GREATEREQUALOP: return "GREATEREQUALOP";
+        case EQUALOP: return "EQUALOP";
+        case NOTEQUALOP: return "NOTEQUALOP";
+        case ANDOP: return "ANDOP";
+        case OROP: return "OROP";
+        case ENDWHILE: return "ENDWHILE";
+        default: return "UNKNOWN";
+    }
+}
+
 TokenType scanner(void)
 {
-    /* TODO: Implement scanner body following the flow above */
+    char c;
 
-    /* Placeholder so file compiles */
-    return SCANEOF;
+    skip_whitespace(&c);
+
+    // End of file
+    if (c == (char)EOF)
+    {
+        current_token = SCANEOF;
+        return current_token;
+    }
+
+    // Determine token type
+    if (isalpha((unsigned char)c))
+    {
+        current_token = scan_identifier_or_keyword(c);
+    }
+    else if (isdigit((unsigned char)c))
+    {
+        current_token = scan_integer(c);
+    }
+    else
+    {
+        current_token = scan_operator(c);
+    }
+
+    return current_token;
 }

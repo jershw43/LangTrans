@@ -1,5 +1,5 @@
 /*
-	Program name: Assignment 1, File Open Program
+	Program name: Program 2, Scanner Program
 	Course: CMSC 4180, Language Translation
 	Group: #3
 	Members:
@@ -14,10 +14,8 @@
 #include "file_util.h"
 #include "scanner.h"
 
-int main(int argc, char *argv[])
+void startup(int argc, char *argv[])
 {
-    printf("\n");
-
     // Input
     init_input_file(argc, argv);
     file_open(&g_input_file, g_input_filename, "r", &g_input_opened);
@@ -38,20 +36,10 @@ int main(int argc, char *argv[])
         file_status("LISTING", g_listing_filename, g_listing_file, &g_listing_opened);
     }
     while (!validate_names());
+}
 
-    // Scanner
-    /* TokenType tok;
-    do
-    {
-        tok = scanner();
-        fprintf(g_output_file, "token number: %d token type: %s actual token: %s\n", (int)tok, token_type_to_string(tok), token_buffer);
-    } while (tok != SCANEOF);
-
-    fprintf(g_listing_file, "%d Lexical Errors.\n", lexical_error_count); */
-
-    // Temp files
-    init_temp_files();
-
+void wrapup()
+{
     // Close everything
     file_close(&g_input_file, &g_input_opened);
     file_close(&g_output_file, &g_output_opened);
@@ -62,6 +50,30 @@ int main(int argc, char *argv[])
     // Delete temp files
     file_delete(&g_temp1_file, g_temp1_filename, &g_temp1_opened);
     // file_delete(g_temp2_file, g_temp2_filename, g_temp2_opened);
+}
+
+int main(int argc, char *argv[])
+{
+    printf("\n");
+
+    startup(argc, argv);
+
+    // Scanner
+    TokenType tok;
+    do
+    {
+        tok = scanner();
+        fprintf(g_output_file, "token number: %d token type: %s actual token: %s\n", (int)tok, token_type_to_string(tok), token_buffer);
+    } while (tok != SCANEOF);
+    fprintf(g_listing_file, "%d Lexical Errors.\n", lexical_error_count);
+    printf("\n");
+    printf("Scanner successfully completed!");
+    printf("\n");
+
+    // Temp files
+    init_temp_files();
+
+    wrapup();
 
     printf("\n");
 

@@ -93,6 +93,8 @@ void open_output_file(int argc, char *argv[])
     FILE *output_file = NULL;
     int opened = 0;
     int got_filename_from_args = 0;
+    //Flag to prevent unwanted overwrite
+    int overwrite_allowed = 0;
     
     // Check for command-line argument
     if (argc > 2)
@@ -158,6 +160,8 @@ void open_output_file(int argc, char *argv[])
         // Check if file exists
         if (access(filename, F_OK) == 0)
         {
+            if(!overwrite_allowed)
+            {
             // File exists, prompt for choice
             int choice_made = 0;
             while (!choice_made)
@@ -178,7 +182,9 @@ void open_output_file(int argc, char *argv[])
                 choice[strcspn(choice, "\n")] = '\0';
                 
                 if (strcmp(choice, "1") == 0)
-                {
+                {  
+                    //Set flag, allowing for overwrite
+                    overwrite_allowed = 1;
                     // Backup the existing file
                     char temp[MAX_FILENAME];
                     strcpy(temp, global_output_filename);
@@ -218,9 +224,11 @@ void open_output_file(int argc, char *argv[])
                     // choice_made remains 0, loop again for choice
                 }
             }
+            }
         }
         else
         {
+            
             // File doesn't exist, open for writing
             output_file = fopen(filename, "w");
             if (output_file == NULL)
@@ -236,6 +244,7 @@ void open_output_file(int argc, char *argv[])
             }
         }
     }
+
     
     // Store results in global variables
     strcpy(global_output_filename, filename);
