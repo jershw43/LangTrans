@@ -27,6 +27,8 @@ typedef enum
     NULLOP,         // "null"
     LPAREN,         // "("
     RPAREN,         // ")"
+    LBRACE,         // "{"
+    RBRACE,         // "}"
     PLUSOP,         // "+"
     MINUSOP,        // "-"
     MULTOP,         // "*"
