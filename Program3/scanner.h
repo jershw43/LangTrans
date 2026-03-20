@@ -55,7 +55,7 @@ extern int line_number;
 extern int lexical_error_count;
 
 TokenType scanner(void);
-
 const char *token_type_to_string(TokenType t);
+TokenType peek_token(void);
 
 #endif

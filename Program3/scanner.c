@@ -12,22 +12,31 @@ int line_number = 0;
 int lexical_error_count = 0;
 static int lookahead = -1;
 
+// Peek stuff
+static int tok_peek_valid = 0;
+static TokenType tok_peek_token;
+static char tok_peek_buf[TOKEN_BUFFER_SIZE];
+
 static char next_char(void)
 {
     int c = 0;
+    int from_lookahead = 0;
     size_t len = 0;
 
     if (lookahead != -1)
     {
         c = lookahead;
         lookahead = -1;
+        from_lookahead = 1;
     }
     else
     {
         c = fgetc(g_input_file);
     }
 
-    if (c != EOF)
+    // Only add to line_buffer when the char came fresh from the file,
+    // not when it was already recorded the first time through
+    if (c != EOF && !from_lookahead)
     {
         len = strlen(line_buffer);
         if (len < sizeof(line_buffer) - 1)
@@ -78,7 +87,7 @@ static void skip_comment(void)
 
 static TokenType scan_identifier_or_keyword(char first_char)
 {
-    int  idx = 0;
+    int idx = 0;
     char c;
     TokenType result;
 
@@ -122,14 +131,14 @@ static TokenType scan_identifier_or_keyword(char first_char)
     else if (strcasecmp(token_buffer, "null")     == 0) { result = NULLOP;   }
     else if (strcasecmp(token_buffer, "and")      == 0) { result = ANDOP;    }
     else if (strcasecmp(token_buffer, "or")       == 0) { result = OROP;     }
-    else                                                 { result = ID;       }
+    else                                                { result = ID;       }
 
     return result;
 }
 
 static TokenType scan_integer(char first_char)
 {
-    int  idx = 0;
+    int idx = 0;
     char c;
 
     // Store the leading digit already supplied by the caller
@@ -189,7 +198,6 @@ static TokenType scan_operator(char c)
                 result = ERROR;
             }
             break;
-
         case '<':
             n = next_char();
             if (n == '=')
@@ -213,7 +221,6 @@ static TokenType scan_operator(char c)
                 result = LESSOP;
             }
             break;
-
         case '>':
             n = next_char();
             if (n == '=')
@@ -231,11 +238,9 @@ static TokenType scan_operator(char c)
                 result = GREATEROP;
             }
             break;
-
         case '+':
             result = PLUSOP;
             break;
-
         case '-':
             n = next_char();
             if (n == '-')
@@ -253,39 +258,30 @@ static TokenType scan_operator(char c)
                 result = MINUSOP;
             }
             break;
-
         case '*':
             result = MULTOP;
             break;
-
         case '/':
             result = DIVOP;
             break;
-
         case '!':
             result = NOTOP;
             break;
-
         case '=':
             result = EQUALOP;
             break;
-
         case '(':
             result = LPAREN;
             break;
-
         case ')':
             result = RPAREN;
             break;
-
         case ';':
             result = SEMICOLON;
             break;
-
         case ',':
             result = COMMA;
             break;
-
         default:
             lexical_error_count = lexical_error_count + 1;
             fprintf(g_listing_file, "Error. '%c' not recognized in line %d.\n", c, line_number + 1);
@@ -301,42 +297,42 @@ const char *token_type_to_string(TokenType t)
     const char *result;
 
     switch (t) {
-        case BEGIN:         result = "BEGIN";         break;
-        case END:           result = "END";           break;
-        case READ:          result = "READ";          break;
-        case WRITE:         result = "WRITE";         break;
-        case ID:            result = "ID";            break;
-        case IF:            result = "IF";            break;
-        case THEN:          result = "THEN";          break;
-        case ELSE:          result = "ELSE";          break;
-        case SEMICOLON:     result = "SEMICOLON";     break;
-        case COMMA:         result = "COMMA";         break;
-        case ASSIGNOP:      result = "ASSIGNOP";      break;
-        case ENDIF:         result = "ENDIF";         break;
-        case WHILE:         result = "WHILE";         break;
-        case SCANEOF:       result = "SCANEOF";       break;
-        case ERROR:         result = "ERROR";         break;
-        case INTLITERAL:    result = "INTLITERAL";    break;
-        case FALSEOP:       result = "FALSEOP";       break;
-        case TRUEOP:        result = "TRUEOP";        break;
-        case NULLOP:        result = "NULLOP";        break;
-        case LPAREN:        result = "LPAREN";        break;
-        case RPAREN:        result = "RPAREN";        break;
-        case PLUSOP:        result = "PLUSOP";        break;
-        case MINUSOP:       result = "MINUSOP";       break;
-        case MULTOP:        result = "MULTOP";        break;
-        case DIVOP:         result = "DIVOP";         break;
-        case NOTOP:         result = "NOTOP";         break;
-        case LESSOP:        result = "LESSOP";        break;
-        case LESSEQUALOP:   result = "LESSEQUALOP";   break;
-        case GREATEROP:     result = "GREATEROP";     break;
-        case GREATEREQUALOP:result = "GREATEREQUALOP";break;
-        case EQUALOP:       result = "EQUALOP";       break;
-        case NOTEQUALOP:    result = "NOTEQUALOP";    break;
-        case ANDOP:         result = "ANDOP";         break;
-        case OROP:          result = "OROP";          break;
-        case ENDWHILE:      result = "ENDWHILE";      break;
-        default:            result = "UNKNOWN";       break;
+        case BEGIN:          result = "BEGIN";          break;
+        case END:            result = "END";            break;
+        case READ:           result = "READ";           break;
+        case WRITE:          result = "WRITE";          break;
+        case ID:             result = "ID";             break;
+        case IF:             result = "IF";             break;
+        case THEN:           result = "THEN";           break;
+        case ELSE:           result = "ELSE";           break;
+        case SEMICOLON:      result = "SEMICOLON";      break;
+        case COMMA:          result = "COMMA";          break;
+        case ASSIGNOP:       result = "ASSIGNOP";       break;
+        case ENDIF:          result = "ENDIF";          break;
+        case WHILE:          result = "WHILE";          break;
+        case SCANEOF:        result = "SCANEOF";        break;
+        case ERROR:          result = "ERROR";          break;
+        case INTLITERAL:     result = "INTLITERAL";     break;
+        case FALSEOP:        result = "FALSEOP";        break;
+        case TRUEOP:         result = "TRUEOP";         break;
+        case NULLOP:         result = "NULLOP";         break;
+        case LPAREN:         result = "LPAREN";         break;
+        case RPAREN:         result = "RPAREN";         break;
+        case PLUSOP:         result = "PLUSOP";         break;
+        case MINUSOP:        result = "MINUSOP";        break;
+        case MULTOP:         result = "MULTOP";         break;
+        case DIVOP:          result = "DIVOP";          break;
+        case NOTOP:          result = "NOTOP";          break;
+        case LESSOP:         result = "LESSOP";         break;
+        case LESSEQUALOP:    result = "LESSEQUALOP";    break;
+        case GREATEROP:      result = "GREATEROP";      break;
+        case GREATEREQUALOP: result = "GREATEREQUALOP"; break;
+        case EQUALOP:        result = "EQUALOP";        break;
+        case NOTEQUALOP:     result = "NOTEQUALOP";     break;
+        case ANDOP:          result = "ANDOP";          break;
+        case OROP:           result = "OROP";           break;
+        case ENDWHILE:       result = "ENDWHILE";       break;
+        default:             result = "UNKNOWN";        break;
     }
 
     return result;
@@ -346,14 +342,26 @@ TokenType scanner(void)
 {
     char c;
 
+    // Consume peeked token if one is waiting
+    if (tok_peek_valid)
+    {
+        tok_peek_valid = 0;
+        strcpy(token_buffer, tok_peek_buf);
+        current_token = tok_peek_token;
+        return current_token;
+    }
+
     skip_whitespace(&c);
 
     // End of file
     if (c == (char)EOF)
     {
         current_token = SCANEOF;
+        return current_token;
     }
-    else if (isalpha((unsigned char)c))
+
+    // Determine token type
+    if (isalpha((unsigned char)c))
     {
         current_token = scan_identifier_or_keyword(c);
     }
@@ -367,4 +375,16 @@ TokenType scanner(void)
     }
 
     return current_token;
+}
+
+TokenType peek_token(void)
+{
+    if (!tok_peek_valid)
+    {
+        tok_peek_token = scanner();
+        strcpy(tok_peek_buf, token_buffer);
+        tok_peek_valid = 1;
+    }
+    strcpy(token_buffer, tok_peek_buf);
+    return tok_peek_token;
 }

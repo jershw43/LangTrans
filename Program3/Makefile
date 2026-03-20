@@ -15,10 +15,10 @@ $(TARGET): $(OBJ)
 clean:
 ifeq ($(OS),Windows_NT)
 	@del /Q $(OBJ) $(TARGET) 2>nul || true
-	@for %f in (*.lis *.bak *.tmp) do del "%f"
+	@for %f in (*.out *.lis *.bak *.tmp) do del "%f"
 else
 	@rm -f $(OBJ) $(TARGET)
-	@rm -f *.lis *.bak *.tmp
+	@rm -f *.out *.lis *.bak *.tmp
 endif
 
 .PHONY: all clean

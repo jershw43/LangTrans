@@ -3,41 +3,115 @@
 #include <ctype.h>
 #include "file_util.h"
 #include "scanner.h"
+#include "parser.h"
 
-int match(TokenType t)
+int syntax_error_count = 0;
+
+static char stmt_buffer[1024] = "";
+
+static void program(void);
+static void statement_list(void);
+static void statement(void);
+static void id_list(void);
+static void expr_list(void);
+static void expression(void);
+static void term(void);
+static void factor(void);
+static void condition(void);
+static void c_expression(void);
+static void c_term(void);
+static void c_factor(void);
+static void c_primary(void);
+static void add_op(void);
+static void mult_op(void);
+static void rel_op(void);
+static void if_tail(void);
+
+// Print buffer to output file and reset it
+static void print_statement(void)
 {
-    int r = 1;
-    if (t != scanner())
+    fprintf(g_output_file, "Statement: %s\n", stmt_buffer);
+    stmt_buffer[0] = '\0';
+}
+
+// Consume next token, print expected/actual, handle mismatch
+int match(TokenType expected)
+{
+    TokenType actual = scanner();
+    fprintf(g_output_file, "Expected Token: %s Actual Token: %s \n", token_type_to_string(expected), token_buffer);
+    if (actual != expected)
     {
-        r = 0;
+        // Syntax error
+        syntax_error_count++;
+        fprintf(g_listing_file, "Syntax Error on line %d: Expected %s but found %s\n", line_number, token_type_to_string(expected), token_buffer);
+
+        // Error recovery
+        if (expected != SEMICOLON && expected != SCANEOF)
+        {
+            while (actual != SEMICOLON && actual != SCANEOF)
+            {
+                actual = scanner();
+            }
+        }
+        stmt_buffer[0] = '\0';
+        return 0;
     }
-    return r;
+
+    // Append token (uppercased)
+    {
+        int i;
+        size_t len = strlen(stmt_buffer);
+        for (i = 0; token_buffer[i] != '\0' && len < sizeof(stmt_buffer) - 2; i++, len++)
+        {
+            stmt_buffer[len] = (char) toupper((unsigned char)token_buffer[i]);
+        }
+        stmt_buffer[len] = '\0';
+    }
+
+    // When a semicolon is matched, print and flush the statement
+    if (expected == SEMICOLON)
+    {
+        print_statement();
+    }
+
+    return 1;
 }
 
-int next_token()
+// Peek at next token without consuming it
+TokenType next_token(void)
 {
-    return scanner();
+    return peek_token();
 }
 
-void program()
+void system_goal(void)
+{
+    program();
+    match(SCANEOF);
+    print_statement();
+}
+
+static void program(void)
 {
     match(BEGIN);
+    print_statement();
     statement_list();
     match(END);
+    print_statement();
 }
 
-void statement_list()
+static void statement_list(void)
 {
-    statement();
-    match(LBRACE);
-    statement_list();
-    match(RBRACE);
+    TokenType t = next_token();
+    while (t != END && t != ENDIF && t != ELSE && t != ENDWHILE && t != SCANEOF)
+    {
+        statement();
+        t = next_token();
+    }
 }
 
-void statement()
+static void statement(void)
 {
-    TokenType t;
-    t = next_token();
+    TokenType t = next_token();
     switch (t)
     {
         case ID:
@@ -65,7 +139,17 @@ void statement()
             match(LPAREN);
             condition();
             match(RPAREN);
-            match(THEN);
+            if (next_token() == THEN)
+            {
+                match(THEN);
+                print_statement();
+            }
+            else
+            {
+                print_statement();
+                match(THEN);
+                print_statement();
+            }
             statement_list();
             if_tail();
             break;
@@ -74,69 +158,93 @@ void statement()
             match(LPAREN);
             condition();
             match(RPAREN);
+            print_statement();
             statement_list();
             match(ENDWHILE);
+            print_statement();
+            break;
+        default:
+            syntax_error_count++;
+            fprintf(g_listing_file, "Syntax Error on line %d: Unexpected token %s\n", line_number, token_type_to_string(t));
+            {
+                TokenType skip = scanner();
+                while (skip != SEMICOLON && skip != SCANEOF)
+                {
+                    skip = scanner();
+                }
+            }
+            stmt_buffer[0] = '\0';
             break;
     }
 }
 
-void if_tail()
+static void if_tail(void)
 {
-    TokenType t;
-    t = next_token();
-    switch (t)
+    TokenType t = next_token();
+    if (t == ELSE)
     {
-        case ELSE:
-            match(ELSE);
-            statement_list();
-            match(ENDIF);
-            break;
-        case ENDIF:
-            match(ENDIF);
-            break;
+        match(ELSE);
+        print_statement();
+        statement_list();
+        match(ENDIF);
+        print_statement();
+    }
+    else
+    {
+        match(ENDIF);
+        print_statement();
     }
 }
 
-void id_list()
+static void id_list(void)
 {
     match(ID);
-    match(LBRACE);
-    match(COMMA);
-    id_list();
-    match(RBRACE);
+    while (next_token() == COMMA)
+    {
+        match(COMMA);
+        match(ID);
+    }
 }
 
-void expr_list()
+static void expr_list(void)
 {
     expression();
-    match(LBRACE);
-    match(COMMA);
-    expr_list();
-    match(RBRACE);
+    while (next_token() == COMMA)
+    {
+        match(COMMA);
+        expression();
+    }
 }
 
-void expression()
-{
-    term();
-    match(LBRACE);
-    add_op();
-    term();
-    match(RBRACE);
-}
-
-void term()
-{
-    factor();
-    match(LBRACE);
-    mult_op();
-    factor();
-    match(RBRACE);
-}
-
-void factor()
+static void expression(void)
 {
     TokenType t;
+    term();
     t = next_token();
+    while (t == PLUSOP || t == MINUSOP)
+    {
+        add_op();
+        term();
+        t = next_token();
+    }
+}
+
+static void term(void)
+{
+    TokenType t;
+    factor();
+    t = next_token();
+    while (t == MULTOP || t == DIVOP)
+    {
+        mult_op();
+        factor();
+        t = next_token();
+    }
+}
+
+static void factor(void)
+{
+    TokenType t = next_token();
     switch (t)
     {
         case LPAREN:
@@ -146,6 +254,7 @@ void factor()
             break;
         case MINUSOP:
             match(MINUSOP);
+            factor();
             break;
         case ID:
             match(ID);
@@ -153,64 +262,97 @@ void factor()
         case INTLITERAL:
             match(INTLITERAL);
             break;
-    }
-}
-
-void condition()
-{
-    TokenType t;
-    t = next_token();
-    switch (t)
-    {
         default:
-            c_expression();
-            match(LBRACE);
-            logical_op();
-            c_expression();
-            match(RBRACE);
-            break;
-        case LPAREN:
-            match(LPAREN);
-            condition();
-            match(RPAREN);
-            break;
-        case MINUSOP:
-            match(MINUSOP);
-            condition();
+            syntax_error_count++;
+            fprintf(g_listing_file, "Syntax Error on line %d: Expected factor but found %s\n", line_number, token_type_to_string(t));
             break;
     }
 }
 
-void c_expression()
+static void condition(void)
 {
-    c_term();
-    match(LBRACE);
-    rel_op();
-    c_term();
-    match(RBRACE);
-}
+    TokenType t = next_token();
 
-void c_term()
-{
-    c_factor();
-    match(LBRACE);
-    add_op();
-    c_term();
-    match(RBRACE);
-}
+    if (t == LPAREN)
+    {
+        c_expression();
+    }
+    else if (t == NOTOP)
+    {
+        match(NOTOP);
+        match(LPAREN);
+        condition();
+        match(RPAREN);
+    }
+    else if (t == MINUSOP)
+    {
+        match(MINUSOP);
+        condition();
+    }
+    else
+    {
+        c_expression();
+    }
 
-void c_factor()
-{
-    c_primary();
-    match(LBRACE);
-    mult_op();
-    c_term();
-    match(RBRACE);
-}
-
-void c_primary() {
-    TokenType t;
     t = next_token();
+    while (t == ANDOP || t == OROP)
+    {
+        scanner(); /* consume and/or */
+        {
+            int i;
+            size_t len = strlen(stmt_buffer);
+            for (i = 0; token_buffer[i] != '\0' && len < sizeof(stmt_buffer)-2; i++, len++)
+                stmt_buffer[len] = (char)toupper((unsigned char)token_buffer[i]);
+            stmt_buffer[len] = '\0';
+        }
+        c_expression();
+        t = next_token();
+    }
+}
+
+static void c_expression(void)
+{
+    TokenType t;
+    c_term();
+    t = next_token();
+    while (t == LESSOP || t == LESSEQUALOP || t == GREATEROP ||
+        t == GREATEREQUALOP || t == EQUALOP || t == NOTEQUALOP)
+    {
+        rel_op();
+        c_term();
+        t = next_token();
+    }
+}
+
+static void c_term(void)
+{
+    TokenType t;
+    c_factor();
+    t = next_token();
+    while (t == PLUSOP || t == MINUSOP)
+    {
+        add_op();
+        c_factor();
+        t = next_token();
+    }
+}
+
+static void c_factor(void)
+{
+    TokenType t;
+    c_primary();
+    t = next_token();
+    while (t == MULTOP || t == DIVOP)
+    {
+        mult_op();
+        c_primary();
+        t = next_token();
+    }
+}
+
+static void c_primary(void)
+{
+    TokenType t = next_token();
     switch (t)
     {
         case LPAREN:
@@ -224,7 +366,9 @@ void c_primary() {
             break;
         case NOTOP:
             match(NOTOP);
-            c_primary();
+            match(LPAREN);
+            c_expression();
+            match(RPAREN);
             break;
         case ID:
             match(ID);
@@ -241,43 +385,30 @@ void c_primary() {
         case NULLOP:
             match(NULLOP);
             break;
-    }
-}
-
-void add_op()
-{
-    TokenType t;
-    t = next_token();
-    switch (t)
-    {
-        case PLUSOP:
-            match(PLUSOP);
-            break;
-        case MINUSOP:
-            match(MINUSOP);
+        default:
+            syntax_error_count++;
+            fprintf(g_listing_file, "Syntax Error on line %d: Expected primary but found %s\n", line_number, token_type_to_string(t));
             break;
     }
 }
 
-void mult_op()
+static void add_op(void)
 {
-    TokenType t;
-    t = next_token();
-    switch (t)
-    {
-        case MULTOP:
-            match(MULTOP);
-            break;
-        case DIVOP:
-            match(DIVOP);
-            break;
-    }
+    TokenType t = next_token();
+    if (t == PLUSOP) match(PLUSOP);
+    else if (t == MINUSOP) match(MINUSOP);
 }
 
-void rel_op()
+static void mult_op(void)
 {
-    TokenType t;
-    t = next_token();
+    TokenType t = next_token();
+    if (t == MULTOP) match(MULTOP);
+    else if (t == DIVOP) match(DIVOP);
+}
+
+static void rel_op(void)
+{
+    TokenType t = next_token();
     switch (t)
     {
         case LESSOP:
@@ -298,26 +429,9 @@ void rel_op()
         case NOTEQUALOP:
             match(NOTEQUALOP);
             break;
-    }
-}
-
-void logical_op()
-{
-    TokenType t;
-    t = next_token();
-    switch (t)
-    {
-        case ANDOP:
-            match(ANDOP);
-            break;
-        case OROP:
-            match(OROP);
+        default:
+            syntax_error_count++;
+            fprintf(g_listing_file, "Syntax Error on line %d: Expected relational operator but found %s\n", line_number, token_type_to_string(t));
             break;
     }
-}
-
-void system_goal()
-{
-    program();
-    match(SCANEOF);
 }

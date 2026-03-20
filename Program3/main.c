@@ -1,12 +1,12 @@
 /*
-	Program name: Program 3, Parser Program
-	Course: CMSC 4180, Language Translation
-	Group: #3
-	Members:
-		Shawn Gallagher - GAL82896@pennwest.edu
-		Joshua Watson - WAT93888@pennwest.edu
-		Camron Mellot - MEL98378@pennwest.edu
-		Luke Joseph - JOS60794@pennwest.edu
+    Program name: Program 3, Parser Program
+    Course: CMSC 4180, Language Translation
+    Group: #3
+    Members:
+        Shawn Gallagher - GAL82896@pennwest.edu
+        Joshua Watson - WAT93888@pennwest.edu
+        Camron Mellot - MEL98378@pennwest.edu
+        Luke Joseph - JOS60794@pennwest.edu
 */
 
 #include <stdio.h>
@@ -15,19 +15,10 @@
 #include "scanner.h"
 #include "parser.h"
 
-int main(int argc, char *argv[])
-{
-    printf("\n");
-    startup(argc, argv);
-    system_goal();
-    wrapup();
-    printf("\n");
-
-    return 0;
-}
-
 void startup(int argc, char *argv[])
 {
+    printf("\n");
+
     // Input file
     init_input_file(argc, argv);
     file_open(&g_input_file, g_input_filename, "r", &g_input_opened);
@@ -49,24 +40,27 @@ void startup(int argc, char *argv[])
     }
     while (!validate_names());
 
-    // Scanner
-    TokenType tok;
-    do
-    {
-        tok = scanner();
-        fprintf(g_output_file, "token number: %d token type: %s actual token: %s\n", (int)tok, token_type_to_string(tok), token_buffer);
-    } while (tok != SCANEOF);
-    fprintf(g_listing_file, "%d Lexical Errors.\n", lexical_error_count);
-    printf("\n");
-    printf("Scanner successfully completed!");
-    printf("\n");
-
     // Temp files
     init_temp_files();
 }
 
-void wrapup()
+void wrapup(void)
 {
+    // Print summary to listing file before closing
+    if (lexical_error_count == 0 && syntax_error_count == 0)
+    {
+        fprintf(g_listing_file, "Input File Compiled without Errors\n");
+    }
+    else
+    {
+        fprintf(g_listing_file, "Input File Compiled with Errors\n");
+    }
+
+    fprintf(g_listing_file, "Total Number of Lexical Errors: %d\n", lexical_error_count);
+    fprintf(g_listing_file, "Total Number of Syntax Errors: %d\n", syntax_error_count);
+
+    printf("\nParser completed successfully!\n\n");
+
     // Close everything
     file_close(&g_input_file, &g_input_opened);
     file_close(&g_output_file, &g_output_opened);
@@ -76,5 +70,13 @@ void wrapup()
 
     // Delete temp files
     file_delete(&g_temp1_file, g_temp1_filename, &g_temp1_opened);
-    // file_delete(g_temp2_file, g_temp2_filename, g_temp2_opened);
+    // file_delete(&g_temp2_file, g_temp2_filename, &g_temp2_opened);
+}
+
+int main(int argc, char *argv[])
+{
+    startup(argc, argv);
+    system_goal();
+    wrapup();
+    return 0;
 }

@@ -3,4 +3,3 @@ read (A, BB);
 X := A + BB;
 write (A, BB, X);
 end
-SCANEOF
