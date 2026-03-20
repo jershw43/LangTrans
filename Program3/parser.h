@@ -6,9 +6,12 @@
 
 extern int syntax_error_count;
 
+// Parsing functions
 void system_goal(void);
 int match(TokenType expected);
 TokenType next_token(void);
+
+// Production functions
 void program(void);
 void statement_list(void);
 void statement(void);
