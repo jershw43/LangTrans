@@ -17,7 +17,7 @@ static int tok_peek_valid = 0;
 static TokenType tok_peek_token;
 static char tok_peek_buf[TOKEN_BUFFER_SIZE];
 
-static char next_char(void)
+char next_char(void)
 {
     int c = 0;
     int from_lookahead = 0;
@@ -41,7 +41,7 @@ static char next_char(void)
         len = strlen(line_buffer);
         if (len < sizeof(line_buffer) - 1)
         {
-            line_buffer[len] = (char)c;
+            line_buffer[len] = (char) c;
             line_buffer[len + 1] = '\0';
         }
 
@@ -59,10 +59,10 @@ static char next_char(void)
         }
     }
 
-    return (char)c;
+    return (char) c;
 }
 
-static void skip_whitespace(char *c)
+void skip_whitespace(char *c)
 {
     // Read the first character to start the check
     *c = next_char();
@@ -75,7 +75,7 @@ static void skip_whitespace(char *c)
     // *c now holds the first non-whitespace character (or EOF)
 }
 
-static void skip_comment(void)
+void skip_comment(void)
 {
     char c;
 
@@ -85,7 +85,7 @@ static void skip_comment(void)
     } while (c != '\n' && c != EOF);
 }
 
-static TokenType scan_identifier_or_keyword(char first_char)
+TokenType scan_identifier_or_keyword(char first_char)
 {
     int idx = 0;
     char c;
@@ -136,7 +136,7 @@ static TokenType scan_identifier_or_keyword(char first_char)
     return result;
 }
 
-static TokenType scan_integer(char first_char)
+TokenType scan_integer(char first_char)
 {
     int idx = 0;
     char c;
@@ -168,7 +168,7 @@ static TokenType scan_integer(char first_char)
     return INTLITERAL;
 }
 
-static TokenType scan_operator(char c)
+TokenType scan_operator(char c)
 {
     char n;
     TokenType result;
@@ -342,36 +342,33 @@ TokenType scanner(void)
 {
     char c;
 
-    // Consume peeked token if one is waiting
     if (tok_peek_valid)
     {
         tok_peek_valid = 0;
         strcpy(token_buffer, tok_peek_buf);
         current_token = tok_peek_token;
-        return current_token;
-    }
-
-    skip_whitespace(&c);
-
-    // End of file
-    if (c == (char)EOF)
-    {
-        current_token = SCANEOF;
-        return current_token;
-    }
-
-    // Determine token type
-    if (isalpha((unsigned char)c))
-    {
-        current_token = scan_identifier_or_keyword(c);
-    }
-    else if (isdigit((unsigned char)c))
-    {
-        current_token = scan_integer(c);
     }
     else
     {
-        current_token = scan_operator(c);
+        skip_whitespace(&c);
+
+        // End of file
+        if (c == (char)EOF)
+        {
+            current_token = SCANEOF;
+        }
+        else if (isalpha((unsigned char)c))
+        {
+            current_token = scan_identifier_or_keyword(c);
+        }
+        else if (isdigit((unsigned char)c))
+        {
+            current_token = scan_integer(c);
+        }
+        else
+        {
+            current_token = scan_operator(c);
+        }
     }
 
     return current_token;

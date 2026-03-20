@@ -283,22 +283,25 @@ void init_temp_files()
 
 int validate_names(void)
 {
+    int result = 1;
+
     if (strcmp(g_input_filename, g_output_filename) == 0)
     {
         printf("Error: Input file name must be different from output file name.\n");
-        return 0;
+        result = 0;
     }
     else if (strcmp(g_input_filename, g_listing_filename) == 0)
     {
         printf("Error: Input file name must be different from listing file name.\n");
-        return 0;
+        result = 0;
     }
     else if (strcmp(g_input_filename, g_backup_filename) == 0)
     {
         printf("Error: Input file name must be different from backup file name.\n");
-        return 0;
+        result = 0;
     }
-    return 1;
+
+    return result;
 }
 
 void generate_extensions()
@@ -366,17 +369,23 @@ void backup_output()
 
 int file_open(FILE **file, const char *filename, const char *mode, int *is_opened)
 {
-    if (file == NULL || filename == NULL || mode == NULL || is_opened == NULL) return 0;
+    int result = 0;
 
-    *file = fopen(filename, mode);
-    if (*file != NULL)
+    if (file != NULL && filename != NULL && mode != NULL && is_opened != NULL)
     {
-        *is_opened = 1;
-        return 1;
+        *file = fopen(filename, mode);
+        if (*file != NULL)
+        {
+            *is_opened = 1;
+            result = 1;
+        }
+        else
+        {
+            *is_opened = 0;
+        }
     }
-    *is_opened = 0;
 
-    return 0;
+    return result;
 }
 
 void file_close(FILE **file, int *is_opened)

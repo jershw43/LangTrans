@@ -6,29 +6,10 @@
 #include "parser.h"
 
 int syntax_error_count = 0;
-
-static char stmt_buffer[1024] = "";
-
-static void program(void);
-static void statement_list(void);
-static void statement(void);
-static void id_list(void);
-static void expr_list(void);
-static void expression(void);
-static void term(void);
-static void factor(void);
-static void condition(void);
-static void c_expression(void);
-static void c_term(void);
-static void c_factor(void);
-static void c_primary(void);
-static void add_op(void);
-static void mult_op(void);
-static void rel_op(void);
-static void if_tail(void);
+char stmt_buffer[1024] = "";
 
 // Print buffer to output file and reset it
-static void print_statement(void)
+void print_statement(void)
 {
     fprintf(g_output_file, "Statement: %s\n", stmt_buffer);
     stmt_buffer[0] = '\0';
@@ -37,8 +18,11 @@ static void print_statement(void)
 // Consume next token, print expected/actual, handle mismatch
 int match(TokenType expected)
 {
+    int result = 1;
     TokenType actual = scanner();
+
     fprintf(g_output_file, "Expected Token: %s Actual Token: %s \n", token_type_to_string(expected), token_buffer);
+    
     if (actual != expected)
     {
         // Syntax error
@@ -53,12 +37,13 @@ int match(TokenType expected)
                 actual = scanner();
             }
         }
-        stmt_buffer[0] = '\0';
-        return 0;
-    }
 
-    // Append token (uppercased)
+        stmt_buffer[0] = '\0';
+        result = 0;
+    }
+    else
     {
+        // Append token (uppercased)
         int i;
         size_t len = strlen(stmt_buffer);
         for (i = 0; token_buffer[i] != '\0' && len < sizeof(stmt_buffer) - 2; i++, len++)
@@ -66,15 +51,15 @@ int match(TokenType expected)
             stmt_buffer[len] = (char) toupper((unsigned char)token_buffer[i]);
         }
         stmt_buffer[len] = '\0';
+
+        // When a semicolon is matched, print and flush the statement
+        if (expected == SEMICOLON)
+        {
+            print_statement();
+        }
     }
 
-    // When a semicolon is matched, print and flush the statement
-    if (expected == SEMICOLON)
-    {
-        print_statement();
-    }
-
-    return 1;
+    return result;
 }
 
 // Peek at next token without consuming it
@@ -90,7 +75,7 @@ void system_goal(void)
     print_statement();
 }
 
-static void program(void)
+void program(void)
 {
     match(BEGIN);
     print_statement();
@@ -99,7 +84,7 @@ static void program(void)
     print_statement();
 }
 
-static void statement_list(void)
+void statement_list(void)
 {
     TokenType t = next_token();
     while (t != END && t != ENDIF && t != ELSE && t != ENDWHILE && t != SCANEOF)
@@ -109,7 +94,7 @@ static void statement_list(void)
     }
 }
 
-static void statement(void)
+void statement(void)
 {
     TokenType t = next_token();
     switch (t)
@@ -178,7 +163,7 @@ static void statement(void)
     }
 }
 
-static void if_tail(void)
+void if_tail(void)
 {
     TokenType t = next_token();
     if (t == ELSE)
@@ -196,7 +181,7 @@ static void if_tail(void)
     }
 }
 
-static void id_list(void)
+void id_list(void)
 {
     match(ID);
     while (next_token() == COMMA)
@@ -206,7 +191,7 @@ static void id_list(void)
     }
 }
 
-static void expr_list(void)
+void expr_list(void)
 {
     expression();
     while (next_token() == COMMA)
@@ -216,7 +201,7 @@ static void expr_list(void)
     }
 }
 
-static void expression(void)
+void expression(void)
 {
     TokenType t;
     term();
@@ -229,7 +214,7 @@ static void expression(void)
     }
 }
 
-static void term(void)
+void term(void)
 {
     TokenType t;
     factor();
@@ -242,7 +227,7 @@ static void term(void)
     }
 }
 
-static void factor(void)
+void factor(void)
 {
     TokenType t = next_token();
     switch (t)
@@ -269,10 +254,9 @@ static void factor(void)
     }
 }
 
-static void condition(void)
+void condition(void)
 {
     TokenType t = next_token();
-
     if (t == LPAREN)
     {
         c_expression();
@@ -294,15 +278,18 @@ static void condition(void)
         c_expression();
     }
 
+    // Buffer formatting to avoid errors
     t = next_token();
     while (t == ANDOP || t == OROP)
     {
-        scanner(); /* consume and/or */
+        scanner();
         {
             int i;
             size_t len = strlen(stmt_buffer);
-            for (i = 0; token_buffer[i] != '\0' && len < sizeof(stmt_buffer)-2; i++, len++)
-                stmt_buffer[len] = (char)toupper((unsigned char)token_buffer[i]);
+            for (i = 0; token_buffer[i] != '\0' && len < sizeof(stmt_buffer) - 2; i++, len++)
+            {
+                stmt_buffer[len] = (char) toupper((unsigned char) token_buffer[i]);
+            }
             stmt_buffer[len] = '\0';
         }
         c_expression();
@@ -310,13 +297,12 @@ static void condition(void)
     }
 }
 
-static void c_expression(void)
+void c_expression(void)
 {
     TokenType t;
     c_term();
     t = next_token();
-    while (t == LESSOP || t == LESSEQUALOP || t == GREATEROP ||
-        t == GREATEREQUALOP || t == EQUALOP || t == NOTEQUALOP)
+    while (t == LESSOP || t == LESSEQUALOP || t == GREATEROP || t == GREATEREQUALOP || t == EQUALOP || t == NOTEQUALOP)
     {
         rel_op();
         c_term();
@@ -324,7 +310,7 @@ static void c_expression(void)
     }
 }
 
-static void c_term(void)
+void c_term(void)
 {
     TokenType t;
     c_factor();
@@ -337,7 +323,7 @@ static void c_term(void)
     }
 }
 
-static void c_factor(void)
+void c_factor(void)
 {
     TokenType t;
     c_primary();
@@ -350,7 +336,7 @@ static void c_factor(void)
     }
 }
 
-static void c_primary(void)
+void c_primary(void)
 {
     TokenType t = next_token();
     switch (t)
@@ -392,21 +378,21 @@ static void c_primary(void)
     }
 }
 
-static void add_op(void)
+void add_op(void)
 {
     TokenType t = next_token();
     if (t == PLUSOP) match(PLUSOP);
     else if (t == MINUSOP) match(MINUSOP);
 }
 
-static void mult_op(void)
+void mult_op(void)
 {
     TokenType t = next_token();
     if (t == MULTOP) match(MULTOP);
     else if (t == DIVOP) match(DIVOP);
 }
 
-static void rel_op(void)
+void rel_op(void)
 {
     TokenType t = next_token();
     switch (t)
