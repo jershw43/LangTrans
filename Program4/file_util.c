@@ -1,7 +1,7 @@
-#include "file_util.h"
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "file_util.h"
 
 // Global definitions
 FILE *g_input_file  = NULL;
@@ -30,13 +30,13 @@ void init_input_file(int argc, char *argv[])
     char filename[256];
     FILE *input_file = NULL;
     int opened = 0;
-    int got_filename_from_args = 0;
+    int got_filename_from_args = (argc > 1);
     
     // Check for command-line argument
-    if (argc > 1)
+    if (got_filename_from_args)
     {
         strcpy(filename, argv[1]);
-        got_filename_from_args = 1;
+        filename[sizeof(filename) - 1] = '\0';
     }
     
     // Main loop - continue until valid file opened
@@ -89,148 +89,89 @@ void init_output_file(int argc, char *argv[])
     char filename[256];
     FILE *output_file = NULL;
     int opened = 0;
-    int got_filename_from_args = 0;
-    //Flag to prevent unwanted overwrite
+    int got_filename_from_args = (argc > 2);
     int overwrite_allowed = 0;
-    
-    // Check for command-line argument
-    if (argc > 2)
+
+    if (got_filename_from_args)
     {
         strcpy(filename, argv[2]);
-        got_filename_from_args = 1;
+        filename[sizeof(filename) - 1] = '\0';
     }
-    
-    // Main loop - continue until valid file opened
+
     while (!opened)
     {
-        // If we don't have filename from args, prompt user
+        int retry = 0;
+
         if (!got_filename_from_args)
         {
             printf("Enter output filename: ");
-            
-            // Read user input
-            if (fgets(filename, sizeof(filename), stdin) == NULL)
+
+            if (fgets(filename, sizeof(filename), stdin) == NULL ||
+                filename[0] == '\n')
             {
-                printf("\nNo filename entered. Using default from input file.\n");
-                // Generate from input filename
-                strcpy(filename, g_input_filename);
-                char *dot = strrchr(filename, '.');
-                if (dot != NULL)
-                {
-                    strcpy(dot, OUT);
-                }
-                else
-                {
-                    strcat(filename, OUT);
-                }
+                printf("No filename entered. Using default from input file.\n");
+                strncpy(filename, g_input_filename, sizeof(filename));
+                filename[sizeof(filename) - 1] = '\0';
             }
             else
             {
-                // Remove trailing newline
                 filename[strcspn(filename, "\n")] = '\0';
-                
-                // Check for empty input
-                if (filename[0] == '\0')
-                {
-                    printf("No filename entered. Using default from input file.\n");
-                    // Generate from input filename
-                    strcpy(filename, g_input_filename);
-                    char *dot = strrchr(filename, '.');
-                    if (dot != NULL)
-                    {
-                        strcpy(dot, OUT);
-                    }
-                    else
-                    {
-                        strcat(filename, OUT);
-                    }
-                }
             }
         }
-        
-        // Check if filename has extension
-        if (strchr(filename, '.') == NULL)
+
+        // Normalize extension to .c
+        char *dot = strrchr(filename, '.');
+        if (dot == NULL)
         {
             strcat(filename, OUT);
         }
-        
-        // Check if file exists
-        if (access(filename, F_OK) == 0)
+        else if (strcmp(dot, OUT) != 0)
         {
-            if(!overwrite_allowed)
+            printf("Warning: replacing extension '%s' with '%s'.\n", dot, OUT);
+            *dot = '\0';
+            strcat(filename, OUT);
+        }
+
+        if (access(filename, F_OK) == 0 && !overwrite_allowed)
+        {
+            char choice[10];
+            printf("File '%s' already exists.\n", filename);
+            printf("Choose an option:\n");
+            printf("1. Overwrite the file (backup will be created)\n");
+            printf("2. Enter a new filename\n");
+            printf("3. Quit the program\n");
+            printf("Enter your choice: ");
+
+            if (fgets(choice, sizeof(choice), stdin) == NULL)
+                exit(0);
+
+            if (choice[0] == '1')
             {
-                // File exists, prompt for choice
-                int choice_made = 0;
-                while (!choice_made)
-                {
-                    printf("File '%s' already exists.\n", filename);
-                    printf("Choose an option:\n");
-                    printf("1. Overwrite the file (backup will be created)\n");
-                    printf("2. Enter a new filename\n");
-                    printf("3. Quit the program\n");
-                    printf("Enter your choice: ");
-                    
-                    char choice[10];
-                    if (fgets(choice, sizeof(choice), stdin) == NULL)
-                    {
-                        printf("Invalid input. Goodbye!\n");
-                        exit(0);
-                    }
-                    choice[strcspn(choice, "\n")] = '\0';
-                    
-                    if (strcmp(choice, "1") == 0)
-                    {  
-                        //Set flag, allowing for overwrite
-                        overwrite_allowed = 1;
-                        // Backup the existing file
-                        char temp[MAX_FILENAME];
-                        strcpy(temp, g_output_filename);
-                        strcpy(g_output_filename, filename);
-                        backup_output();
-                        strcpy(g_output_filename, temp);
-                        
-                        // Now open for writing
-                        output_file = fopen(filename, "w");
-                        if (output_file == NULL)
-                        {
-                            printf("Error: Cannot open file '%s' for writing\n", filename);
-                            printf("Please try again.\n");
-                            got_filename_from_args = 0;
-                            choice_made = 1;  // Exit choice loop, retry outer loop
-                        }
-                        else
-                        {
-                            opened = 1;
-                            choice_made = 1;
-                        }
-                    }
-                    else if (strcmp(choice, "2") == 0)
-                    {
-                        // Enter new name
-                        got_filename_from_args = 0;
-                        choice_made = 1;  // Exit choice loop, retry outer loop
-                    }
-                    else if (strcmp(choice, "3") == 0)
-                    {
-                        printf("Terminating program.\n");
-                        exit(0);
-                    }
-                    else
-                    {
-                        printf("Invalid choice. Please try again.\n");
-                        // choice_made remains 0, loop again for choice
-                    }
-                }
+                overwrite_allowed = 1;
+                char temp[256];
+                strcpy(temp, g_output_filename);
+                strcpy(g_output_filename, filename);
+                backup_output();
+                strcpy(g_output_filename, temp);
+            }
+            else if (choice[0] == '2')
+            {
+                got_filename_from_args = 0;
+                retry = 1;
+            }
+            else
+            {
+                printf("Terminating program.\n");
+                exit(0);
             }
         }
-        else
+
+        if (!retry)
         {
-            // File doesn't exist, open for writing
             output_file = fopen(filename, "w");
             if (output_file == NULL)
             {
-                printf("Error: Cannot open file '%s' for writing\n", filename);
-                printf("Please try again.\n\n");
+                printf("Error: Cannot open '%s'. Try again.\n\n", filename);
                 got_filename_from_args = 0;
             }
             else
@@ -244,8 +185,6 @@ void init_output_file(int argc, char *argv[])
     strcpy(g_output_filename, filename);
     g_output_file = output_file;
     g_output_opened = 1;
-
-    printf("\n");
 }
 
 void init_listing_file()

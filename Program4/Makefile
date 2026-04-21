@@ -1,8 +1,8 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -g
 
-SRCS = main.c file_util.c scanner.c parser.c
-DEPS = file_util.h scanner.h parser.h
+SRCS = main.c file_util.c scanner.c parser.c action.c
+DEPS = file_util.h scanner.h parser.h action.h
 INPUTS = example.in example2.in
 OBJS = $(SRCS:.c=.o)
 TARGET = Program4
