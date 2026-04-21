@@ -3,23 +3,6 @@
 
 // Records
 typedef enum {
-    EXPR_PLUS,
-    EXPR_MINUS,
-    EXPR_MULT,
-    EXPR_DIV,
-    EXPR_NOT,
-    EXPR_LESS,
-    EXPR_LESSEQ,
-    EXPR_GREATER,
-    EXPR_GREATEREQ,
-    EXPR_EQUAL,
-    EXPR_NOTEQUAL,
-    EXPR_FALSE,
-    EXPR_TRUE,
-    EXPR_NULL
-} op_expr;
-
-typedef enum {
     EXPR_ID,
     EXPR_LITERAL,
     EXPR_TEMP,
