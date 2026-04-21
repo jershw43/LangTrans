@@ -7,31 +7,57 @@
 #include "file_util.h"
 #include "action.h"
 
-// Expression stack
-#define MAX_STACK 1024
+#define MAX_RECS 1024
+#define BUF_SIZE 262144
 
-static char *expr_stack[MAX_STACK];
+// Records
+static char *op_rec[MAX_RECS];
+static int op_top = -1;
+static char *expr_rec[MAX_RECS];
 static int expr_top_index = -1;
 
+// Symbol table
+static char *vars[MAX_RECS];
+static int var_count = 0;
+
+// Output buffer/generation
+static char body_buf[BUF_SIZE];
+static int buf_pos = 0;
+static char current_lhs[128];
+static int temp_count = 0;
+int loop_start_pos;
+
+// Operator record
+static void push_op(const char *op)
+{
+    op_rec[++op_top] = strdup(op);
+}
+
+static char *pop_op()
+{
+    return op_rec[op_top--];
+}
+
+// Expression record
 void expr_push(const char *s)
 {
-    if (expr_top_index < MAX_STACK - 1)
+    if (expr_top_index < MAX_RECS - 1)
     {
-        expr_stack[++expr_top_index] = strdup(s);
+        expr_rec[++expr_top_index] = strdup(s);
     }
 }
 
 char *expr_pop()
 {
     if (expr_top_index >= 0)
-        return expr_stack[expr_top_index--];
+        return expr_rec[expr_top_index--];
     return NULL;
 }
 
 char *expr_top()
 {
     if (expr_top_index >= 0)
-        return expr_stack[expr_top_index];
+        return expr_rec[expr_top_index];
     return NULL;
 }
 
@@ -40,26 +66,7 @@ int expr_depth()
     return expr_top_index + 1;
 }
 
-// Operator stack
-static char *op_stack[MAX_STACK];
-static int op_top = -1;
-
-static void push_op(const char *op)
-{
-    op_stack[++op_top] = strdup(op);
-}
-
-static char *pop_op()
-{
-    return op_stack[op_top--];
-}
-
 // Output buffer
-#define BUF_SIZE 262144
-
-static char body_buf[BUF_SIZE];
-static int buf_pos = 0;
-
 static void append(const char *fmt, ...)
 {
     va_list args;
@@ -69,18 +76,29 @@ static void append(const char *fmt, ...)
 }
 
 // Temp variables
-static int temp_count = 0;
-
 static char *new_temp()
 {
     char *buf = malloc(16);
-    sprintf(buf, "t%d", temp_count++);
+    sprintf(buf, "Temp%d", temp_count++);
     return buf;
 }
 
-// Assignment target
-static char current_lhs[128];
+// Symbol table
+static int var_exists(const char *id)
+{
+    for (int i = 0; i < var_count; i++)
+        if (strcmp(vars[i], id) == 0)
+            return 1;
+    return 0;
+}
 
+static void add_var(const char *id)
+{
+    if (!var_exists(id))
+        vars[var_count++] = strdup(id);
+}
+
+// Generator
 void act_init()
 {
     buf_pos = 0;
@@ -93,9 +111,10 @@ void act_start()
     char *dt = ctime(&now);
 
     fprintf(g_output_file,
-        "// C program of %s\n"
-        "// Current Date and Time:\n"
-        "// %s"
+        "/*\n"
+        "C program of %s\n"
+        "%s"
+        "*/\n\n"
         "#include <stdio.h>\n"
         "int main()\n"
         "{\n",
@@ -106,26 +125,26 @@ void act_start()
 
 void act_finish()
 {
-    // Declare temps
-    if (temp_count > 0)
-    {
-        fprintf(g_output_file, "    int ");
-        for (int i = 0; i < temp_count; i++)
-        {
-            fprintf(g_output_file, "t%d", i);
-            if (i != temp_count - 1)
-                fprintf(g_output_file, ", ");
-        }
-        fprintf(g_output_file, ";\n\n");
-    }
+    // Declare variables
+    for (int i = 0; i < var_count; i++)
+        fprintf(g_output_file, "    int %s;\n", vars[i]);
 
+    // Declare temps
+    for (int i = 0; i < temp_count; i++)
+        fprintf(g_output_file, "    int Temp%d;\n", i);
+
+    // Print statements
     fprintf(g_output_file, "%s", body_buf);
-    fprintf(g_output_file, "\n    return 0;\n}\n");
+    fprintf(g_output_file, "    return 0;\n}\n\n");
+
+    fprintf(g_listing_file, "PROGRAM COMPILED WITH NO ERRORS.\n");
+    fprintf(g_output_file, "/* PROGRAM COMPILED WITH NO ERRORS. */\n");
 }
 
 // Expression handling
 void act_process_id(const char *id)
 {
+    add_var(id);
     expr_push(id);
 }
 
@@ -136,16 +155,14 @@ void act_process_literal(const char *lit)
 
 void act_process_op(const char *op)
 {
-    if (strcmp(op, "=") == 0)
-        push_op("==");
-    else if (strcmp(op, "<>") == 0)
-        push_op("!=");
-    else if (strcasecmp(op, "and") == 0)
-        push_op("&&");
-    else if (strcasecmp(op, "or") == 0)
-        push_op("||");
-    else
-        push_op(op);
+    if      (strcasecmp(op, "true") == 0)  expr_push("1");
+    else if (strcasecmp(op, "false") == 0) expr_push("0");
+    else if (strcasecmp(op, "null") == 0)  expr_push("0");
+    else if (strcmp(op, "=") == 0)         push_op("==");
+    else if (strcmp(op, "<>") == 0)        push_op("!=");
+    else if (strcasecmp(op, "and") == 0)   push_op("&&");
+    else if (strcasecmp(op, "or") == 0)    push_op("||");
+    else                                   push_op(op);
 }
 
 void act_gen_infix()
@@ -153,9 +170,17 @@ void act_gen_infix()
     char *right = expr_pop();
     char *left = expr_pop();
     char *op = pop_op();
-
     char *temp = new_temp();
+    append("    %s = %s %s %s;\n", temp, left, op, right);
+    expr_push(temp);
+}
 
+void act_gen_condition()
+{
+    char *right = expr_pop();
+    char *left  = expr_pop();
+    char *op    = pop_op();
+    char *temp = new_temp();
     append("    %s = %s %s %s;\n", temp, left, op, right);
     expr_push(temp);
 }
@@ -183,7 +208,6 @@ void act_write_expr()
     append("    printf(\"%%d\\n\", %s);\n", expr);
 }
 
-// Control flow
 void act_if_start()
 {
     char *cond = expr_pop();
@@ -209,4 +233,14 @@ void act_while_start()
 void act_endwhile()
 {
     append("    }\n");
+}
+
+void act_open_temp()
+{
+    loop_start_pos = buf_pos;
+}
+
+void act_write_temp()
+{
+    append("%.*s", buf_pos - loop_start_pos, body_buf + loop_start_pos);
 }
