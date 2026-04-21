@@ -69,6 +69,7 @@ void wrapup(void)
     // file_delete(&g_temp2_file, g_temp2_filename, &g_temp2_opened);
 }
 
+//? For dev purposes post-compilation
 int run_generated_code(void) {
     char choice[10];
     char exe_name[256];
@@ -77,7 +78,7 @@ int run_generated_code(void) {
     int status = 0;
 
     printf("\nCode generation completed successfully!\n");
-    printf("Would you like to run %s? (Y/N): ", g_output_filename);
+    printf("Would you like to run %s using GCC? (Y/N): ", g_output_filename);
     scanf(" %c", choice);
 
     if (choice[0] == 'Y' || choice[0] == 'y') {
@@ -88,7 +89,7 @@ int run_generated_code(void) {
         char *dot = strrchr(exe_name, '.');
         *dot = '\0';
 
-        // Define compile + run commands (platform dependent)
+        // Define compile + run commands (platform specific)
         #ifdef _WIN32
             snprintf(compile_cmd, sizeof(compile_cmd), "gcc \"%s\" -o \"%s.exe\"", g_output_filename, exe_name);
             snprintf(run_cmd, sizeof(run_cmd), "\"%s.exe\"", exe_name);
