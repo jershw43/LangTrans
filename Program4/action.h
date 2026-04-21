@@ -28,43 +28,39 @@ char *expr_pop(void);
 char *expr_top(void);
 int expr_depth(void);
 
-// NEEDS IMPLEMENTING: proper expression records
 typedef enum {
-    PLUSOP,         // "+"
-    MINUSOP,        // "-"
-    MULTOP,         // "*"
-    DIVOP,          // "/"
-    NOTOP,          // "!"
-    LESSOP,         // "<"
-    LESSEQUALOP,    // "<="
-    GREATEROP,      // ">"
-    GREATEREQUALOP, // ">="
-    EQUALOP,        // "="
-    NOTEQUALOP,     // "<>"
-	FALSEOP,        // "false"
-    TRUEOP,         // "true"
-    NULLOP          // "null"
+    EXPR_PLUS,
+    EXPR_MINUS,
+    EXPR_MULT,
+    EXPR_DIV,
+    EXPR_NOT,
+    EXPR_LESS,
+    EXPR_LESSEQ,
+    EXPR_GREATER,
+    EXPR_GREATEREQ,
+    EXPR_EQUAL,
+    EXPR_NOTEQUAL,
+    EXPR_FALSE,
+    EXPR_TRUE,
+    EXPR_NULL
 } op_expr;
 
 typedef enum {
-	ID,
-	LITERAL,
-	TEMP,
-	CONDITION
+    EXPR_ID,
+    EXPR_LITERAL,
+    EXPR_TEMP,
+    EXPR_CONDITION
 } expr_type;
 
-typedef enum {
-	TYPE,
-	EXPR
-} expr_rec;
+typedef struct {
+    expr_type kind;
+    char      name[128];
+} ExprRec;
 
-// NEEDS IMPLEMENTING: some more action routines
 void act_open_temp(void);
 void act_write_tmp(void);
 void act_gen_condition(void);
 
-// NEEDS IMPLEMENTING: additional helper functions from Lesson 17
-// not exactly sure where these fit in, but they could probably replace some of the statement functions
 int act_lookup(char *s);
 void act_enter(char *s);
 void act_check_id(char *s);

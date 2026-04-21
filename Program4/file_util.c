@@ -204,20 +204,8 @@ void init_listing_file()
 
 void init_temp_files()
 {
-    // Temp 1
     file_open(&g_temp1_file, g_temp1_filename, "w", &g_temp1_opened);
-    fprintf(g_temp1_file, "The Temp\n");
-    char ch;
-    while ((ch = (char)fgetc(g_temp1_file)) != EOF)
-    {
-        fputc(ch, g_output_file);
-    }
-    file_close(&g_temp1_file, &g_temp1_opened);
-
-    // Temp 2
     file_open(&g_temp2_file, g_temp2_filename, "w", &g_temp2_opened);
-    fprintf(g_temp2_file, "Loop Information\n");
-    file_close(&g_temp2_file, &g_temp2_opened);
 }
 
 int validate_names(void)
@@ -347,7 +335,7 @@ void file_delete(FILE **file, const char *filename, int *is_opened)
 void file_status(const char *name, const char *filename, FILE *file, int *is_opened)
 {
     printf("[%s FILE STATUS]\n", name ? name : "(null)");
-    printf("– Filename: %s\n", filename ? filename : "(null)");
-    printf("– File pointer: %p\n", (void *) file);
-    printf("– Currently opened: %s\n", (is_opened && *is_opened) ? "true" : "false");
+    printf("- Filename: %s\n", filename ? filename : "(null)");
+    printf("- File pointer: %p\n", (void *) file);
+    printf("- Currently opened: %s\n", (is_opened && *is_opened) ? "true" : "false");
 }

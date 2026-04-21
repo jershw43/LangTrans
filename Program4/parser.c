@@ -174,8 +174,10 @@ void statement(void)
             match(WHILE);
             match(LPAREN);
 
+            act_open_temp();
             condition();
-            act_while_start();        
+            act_write_tmp();
+            act_while_start();
 
             match(RPAREN);
 

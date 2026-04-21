@@ -1,0 +1,6 @@
+1	begin		-- a program
+Error. '&' not recognized in line 2.
+2	a  := BB  & A;;
+3	end
+4	
+1 Lexical Errors.
