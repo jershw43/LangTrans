@@ -46,23 +46,17 @@ static expr_rec expr_pop_rec(void)
     expr_rec empty;
     empty.kind = EXPR_LITERAL;
     strcpy(empty.name, "0");
-    if (expr_top_index >= 0)
-        return expr_stack[expr_top_index--];
-    return empty;
+    return (expr_top_index >= 0) ? expr_stack[expr_top_index--] : empty;
 }
 
 char *expr_pop(void)
 {
-    if (expr_top_index >= 0)
-        return expr_stack[expr_top_index--].name;
-    return NULL;
+    return (expr_top_index >= 0) ? expr_stack[expr_top_index--].name : NULL;
 }
 
 char *expr_top(void)
 {
-    if (expr_top_index >= 0)
-        return expr_stack[expr_top_index].name;
-    return NULL;
+    return (expr_top_index >= 0) ? expr_stack[expr_top_index].name : NULL;
 }
 
 int expr_depth(void)
