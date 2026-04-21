@@ -9,18 +9,12 @@
 int syntax_error_count = 0;
 char stmt_buffer[1024] = "";
 
-/* =========================
-   FIXED: listing only
-   ========================= */
 void print_statement(void)
 {
     fprintf(g_listing_file, "Statement: %s\n", stmt_buffer);
     stmt_buffer[0] = '\0';
 }
 
-/* =========================
-   FIXED: no output file writes
-   ========================= */
 int match(TokenType expected)
 {
     int result = 1;
@@ -67,8 +61,6 @@ TokenType next_token(void)
     return peek_token();
 }
 
-/* ========================= */
-
 void system_goal(void)
 {
     act_init();          
@@ -79,12 +71,11 @@ void system_goal(void)
 
 void program(void)
 {
+    act_start();
     match(BEGIN);
     statement_list();
     match(END);
 }
-
-/* ========================= */
 
 void statement_list(void)
 {
@@ -95,8 +86,6 @@ void statement_list(void)
         t = next_token();
     }
 }
-
-/* ========================= */
 
 void statement(void)
 {
@@ -206,10 +195,7 @@ void statement(void)
     }
 }
 
-/* ========================= */
-/* ===== EXPRESSIONS ======= */
-/* ========================= */
-
+// Expressions
 void expression(void)
 {
     term();
@@ -282,10 +268,7 @@ void factor(void)
     }
 }
 
-/* ========================= */
-/* ===== CONDITIONS ======== */
-/* ========================= */
-
+// Conditions
 void condition(void)
 {
     c_expression();
@@ -406,8 +389,7 @@ void c_primary(void)
     }
 }
 
-/* ========================= */
-
+// Operators
 void add_op(void)
 {
     if (next_token() == PLUSOP) match(PLUSOP);

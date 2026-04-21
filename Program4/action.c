@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
 #include <stdarg.h>
+#include "file_util.h"
 #include "action.h"
 
-/* =========================
-   Expression stack
-   ========================= */
+// Expression stack
 #define MAX_STACK 1024
 
 static char *expr_stack[MAX_STACK];
@@ -40,9 +40,7 @@ int expr_depth()
     return expr_top_index + 1;
 }
 
-/* =========================
-   Operator stack
-   ========================= */
+// Operator stack
 static char *op_stack[MAX_STACK];
 static int op_top = -1;
 
@@ -56,9 +54,7 @@ static char *pop_op()
     return op_stack[op_top--];
 }
 
-/* =========================
-   Output buffer
-   ========================= */
+// Output buffer
 #define BUF_SIZE 262144
 
 static char body_buf[BUF_SIZE];
@@ -72,9 +68,7 @@ static void append(const char *fmt, ...)
     va_end(args);
 }
 
-/* =========================
-   Temp variables
-   ========================= */
+// Temp variables
 static int temp_count = 0;
 
 static char *new_temp()
@@ -84,14 +78,8 @@ static char *new_temp()
     return buf;
 }
 
-/* =========================
-   Assignment target
-   ========================= */
+// Assignment target
 static char current_lhs[128];
-
-/* =========================
-   Public API
-   ========================= */
 
 void act_init()
 {
@@ -101,17 +89,24 @@ void act_init()
 
 void act_start()
 {
-    /* nothing needed */
+    time_t now = time(NULL);
+    char *dt = ctime(&now);
+
+    fprintf(g_output_file,
+        "// C program of %s\n"
+        "// Current Date and Time:\n"
+        "// %s"
+        "#include <stdio.h>\n"
+        "int main()\n"
+        "{\n",
+        g_input_filename,
+        dt
+    );
 }
 
 void act_finish()
 {
-    extern FILE *g_output_file;
-
-    fprintf(g_output_file, "#include <stdio.h>\n\n");
-    fprintf(g_output_file, "int main() {\n");
-
-    /* Declare temps */
+    // Declare temps
     if (temp_count > 0)
     {
         fprintf(g_output_file, "    int ");
@@ -125,14 +120,10 @@ void act_finish()
     }
 
     fprintf(g_output_file, "%s", body_buf);
-
     fprintf(g_output_file, "\n    return 0;\n}\n");
 }
 
-/* =========================
-   Expression handling
-   ========================= */
-
+// Expression handling
 void act_process_id(const char *id)
 {
     expr_push(id);
@@ -169,10 +160,7 @@ void act_gen_infix()
     expr_push(temp);
 }
 
-/* =========================
-   Statements
-   ========================= */
-
+// Statements
 void act_start_assign(const char *id)
 {
     strcpy(current_lhs, id);
@@ -195,10 +183,7 @@ void act_write_expr()
     append("    printf(\"%%d\\n\", %s);\n", expr);
 }
 
-/* =========================
-   Control flow
-   ========================= */
-
+// Control flow
 void act_if_start()
 {
     char *cond = expr_pop();

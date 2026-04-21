@@ -16,7 +16,6 @@
 #include "file_util.h"
 #include "scanner.h"
 #include "parser.h"
-#include "action.c"
 #include "action.h"
 
 void startup(int argc, char *argv[])
