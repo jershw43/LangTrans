@@ -1,33 +1,7 @@
 #ifndef ACTION_H
 #define ACTION_H
 
-void act_init(void);
-void act_start(void);
-void act_finish(void);
-
-// Expression handling
-void act_process_id(const char *id);
-void act_process_literal(const char *lit);
-void act_process_op(const char *op);
-void act_gen_infix(void);
-
-// Statements
-void act_start_assign(const char *id);
-void act_assign(void);
-void act_read_id(const char *id);
-void act_write_expr(void);
-void act_if_start(void);
-void act_else(void);
-void act_endif(void);
-void act_while_start(void);
-void act_endwhile(void);
-
-// Expression stack utilities
-void expr_push(const char *s);
-char *expr_pop(void);
-char *expr_top(void);
-int expr_depth(void);
-
+// Records
 typedef enum {
     EXPR_PLUS,
     EXPR_MINUS,
@@ -54,17 +28,32 @@ typedef enum {
 
 typedef struct {
     expr_type kind;
-    char      name[128];
-} ExprRec;
+    char name[128];
+} expr_rec;
 
+// Generator
+void start(void);
+void generate(char *s[5]);
+void finish(void);
+
+// Expression handling
+void process_id(const char *id);
+void process_literal(const char *lit);
+void process_op(const char *op);
+void gen_infix(void);
+void gen_condition(void);
+
+// Statements
+void act_start_assign(const char *id);
+void act_assign(void);
+void act_read_id(const char *id);
+void act_write_expr(void);
+void act_if_start(void);
+void act_else(void);
+void act_endif(void);
+void act_while_start(void);
+void act_endwhile(void);
 void act_open_temp(void);
 void act_write_tmp(void);
-void act_gen_condition(void);
-
-int act_lookup(char *s);
-void act_enter(char *s);
-void act_check_id(char *s);
-void act_generate(char *s[5]);
-char *act_get_temp(void);
 
 #endif

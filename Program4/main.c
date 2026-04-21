@@ -50,17 +50,12 @@ void startup(int argc, char *argv[])
 void wrapup(void)
 {
     // Print summary to listing file before closing
+    fprintf(g_listing_file, "Total number of Lexical Errors: %d\n", lexical_error_count);
+    fprintf(g_listing_file, "Total number of Syntax Errors: %d\n", syntax_error_count);
     if (lexical_error_count == 0 && syntax_error_count == 0)
-    {
-        fprintf(g_listing_file, "Input File Compiled without Errors\n");
-    }
+        fprintf(g_listing_file, "Program compiled without errors.\n");
     else
-    {
-        fprintf(g_listing_file, "Input File Compiled with Errors\n");
-    }
-
-    fprintf(g_listing_file, "Total Number of Lexical Errors: %d\n", lexical_error_count);
-    fprintf(g_listing_file, "Total Number of Syntax Errors: %d\n", syntax_error_count);
+        fprintf(g_listing_file, "Program compiled with errors.\n");
 
     // Close everything
     file_close(&g_input_file, &g_input_opened);

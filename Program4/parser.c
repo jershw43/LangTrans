@@ -20,9 +20,8 @@ int match(TokenType expected)
     int result = 1;
     TokenType actual = scanner();
 
-    fprintf(g_listing_file,
-        "Expected Token: %s Actual Token: %s\n",
-        token_type_to_string(expected), token_buffer);
+    // No longer required, uncomment for debugging
+    // fprintf(g_listing_file, "Expected Token: %s Actual Token: %s\n", token_type_to_string(expected), token_buffer);
 
     if (actual != expected)
     {
@@ -62,16 +61,15 @@ TokenType next_token(void)
 }
 
 void system_goal(void)
-{
-    act_init();          
+{     
     program();
     match(SCANEOF);
-    act_finish();        
+    finish();
 }
 
 void program(void)
 {
-    act_start();
+    start();
     match(BEGIN);
     statement_list();
     match(END);
@@ -99,12 +97,12 @@ void statement(void)
             strcpy(temp, token_buffer);
             match(ID);
 
-            act_start_assign(temp);   
+            act_start_assign(temp);
 
             match(ASSIGNOP);
             expression();
 
-            act_assign();             
+            act_assign();
 
             match(SEMICOLON);
             break;
@@ -112,19 +110,15 @@ void statement(void)
         case READ:
             match(READ);
             match(LPAREN);
-
-            strcpy(temp, token_buffer);
             match(ID);
-            act_read_id(temp);        
-
-            while (next_token() == COMMA)
-            {
+            strcpy(temp, token_buffer);
+            act_read_id(temp);
+            while (next_token() == COMMA) {
                 match(COMMA);
-                strcpy(temp, token_buffer);
                 match(ID);
-                act_read_id(temp);    
+                strcpy(temp, token_buffer);
+                act_read_id(temp);
             }
-
             match(RPAREN);
             match(SEMICOLON);
             break;
@@ -134,13 +128,13 @@ void statement(void)
             match(LPAREN);
 
             expression();
-            act_write_expr();         
+            act_write_expr();
 
             while (next_token() == COMMA)
             {
                 match(COMMA);
                 expression();
-                act_write_expr();     
+                act_write_expr();
             }
 
             match(RPAREN);
@@ -152,7 +146,7 @@ void statement(void)
             match(LPAREN);
 
             condition();
-            act_if_start();           
+            act_if_start();
 
             match(RPAREN);
             match(THEN);
@@ -162,12 +156,12 @@ void statement(void)
             if (next_token() == ELSE)
             {
                 match(ELSE);
-                act_else();           
+                act_else();
                 statement_list();
             }
 
             match(ENDIF);
-            act_endif();              
+            act_endif();
             break;
 
         case WHILE:
@@ -184,7 +178,7 @@ void statement(void)
             statement_list();
 
             match(ENDWHILE);
-            act_endwhile();           
+            act_endwhile();
             break;
 
         default:
@@ -207,10 +201,10 @@ void expression(void)
         char op[32];
         strcpy(op, token_buffer);
         add_op();
-        act_process_op(op);       
+        process_op(op);
 
         term();
-        act_gen_infix();          
+        gen_infix();
     }
 }
 
@@ -223,10 +217,10 @@ void term(void)
         char op[32];
         strcpy(op, token_buffer);
         mult_op();
-        act_process_op(op);       
+        process_op(op);
 
         factor();
-        act_gen_infix();          
+        gen_infix();
     }
 }
 
@@ -251,13 +245,13 @@ void factor(void)
         case ID:
             strcpy(temp, token_buffer);
             match(ID);
-            act_process_id(temp);     
+            process_id(temp);
             break;
 
         case INTLITERAL:
             strcpy(temp, token_buffer);
             match(INTLITERAL);
-            act_process_literal(temp); 
+            process_literal(temp); 
             break;
 
         default:
@@ -281,10 +275,10 @@ void condition(void)
         strcpy(op, token_buffer);
         match(next_token());
 
-        act_process_op(op);       
+        process_op(op);
 
         c_expression();
-        act_gen_infix();          
+        gen_infix();
     }
 }
 
@@ -300,10 +294,10 @@ void c_expression(void)
         strcpy(op, token_buffer);
         rel_op();
 
-        act_process_op(op);       
+        process_op(op);
 
         c_term();
-        act_gen_infix();          
+        gen_infix();
     }
 }
 
@@ -317,10 +311,10 @@ void c_term(void)
         strcpy(op, token_buffer);
         add_op();
 
-        act_process_op(op);       
+        process_op(op);
 
         c_factor();
-        act_gen_infix();          
+        gen_infix();
     }
 }
 
@@ -334,10 +328,10 @@ void c_factor(void)
         strcpy(op, token_buffer);
         mult_op();
 
-        act_process_op(op);       
+        process_op(op);
 
         c_primary();
-        act_gen_infix();          
+        gen_infix();
     }
 }
 
@@ -357,28 +351,33 @@ void c_primary(void)
         case ID:
             strcpy(temp, token_buffer);
             match(ID);
-            act_process_id(temp);
+            process_id(temp);
             break;
 
         case INTLITERAL:
             strcpy(temp, token_buffer);
             match(INTLITERAL);
-            act_process_literal(temp);
+            process_literal(temp);
             break;
 
         case TRUEOP:
             match(TRUEOP);
-            act_process_literal("1");
+            process_literal("1");
             break;
 
         case FALSEOP:
             match(FALSEOP);
-            act_process_literal("0");
+            process_literal("0");
             break;
 
         case NULLOP:
             match(NULLOP);
-            act_process_literal("0");
+            process_literal("0");
+            break;
+
+        case NOTOP:
+            match(NOTOP);
+            c_primary();
             break;
 
         default:

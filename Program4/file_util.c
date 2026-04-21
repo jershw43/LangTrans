@@ -204,8 +204,8 @@ void init_listing_file()
 
 void init_temp_files()
 {
-    file_open(&g_temp1_file, g_temp1_filename, "w", &g_temp1_opened);
-    file_open(&g_temp2_file, g_temp2_filename, "w", &g_temp2_opened);
+    file_open(&g_temp1_file, g_temp1_filename, "w+", &g_temp1_opened);
+    file_open(&g_temp2_file, g_temp2_filename, "w+", &g_temp2_opened);
 }
 
 int validate_names(void)

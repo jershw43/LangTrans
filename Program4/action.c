@@ -2,19 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <ctype.h>
 #include <time.h>
 #include <stdarg.h>
 #include "file_util.h"
+#include "scanner.h"
+#include "parser.h"
 #include "action.h"
 
-#define MAX_STACK   1024
-#define MAX_SYMBOLS  256
-#define BUF_SIZE    262144
+#define MAX_STACK 1024
+#define MAX_SYMBOLS 256
+#define BODY_BUF_SIZE 262144
 #define COND_BUF_SIZE 4096
 
-// ── Expression stack (ExprRec) ────────────────────────────────────────────────
-
-static ExprRec expr_stack[MAX_STACK];
+// Expression record
+static expr_rec expr_stack[MAX_STACK];
 static int expr_top_index = -1;
 
 void expr_push(const char *s)
@@ -23,8 +25,7 @@ void expr_push(const char *s)
     {
         expr_top_index++;
         expr_stack[expr_top_index].kind = EXPR_TEMP;
-        strncpy(expr_stack[expr_top_index].name, s,
-                sizeof(expr_stack[expr_top_index].name) - 1);
+        strncpy(expr_stack[expr_top_index].name, s, sizeof(expr_stack[expr_top_index].name) - 1);
         expr_stack[expr_top_index].name[127] = '\0';
     }
 }
@@ -35,15 +36,14 @@ static void expr_push_rec(expr_type kind, const char *s)
     {
         expr_top_index++;
         expr_stack[expr_top_index].kind = kind;
-        strncpy(expr_stack[expr_top_index].name, s,
-                sizeof(expr_stack[expr_top_index].name) - 1);
+        strncpy(expr_stack[expr_top_index].name, s, sizeof(expr_stack[expr_top_index].name) - 1);
         expr_stack[expr_top_index].name[127] = '\0';
     }
 }
 
-static ExprRec expr_pop_rec(void)
+static expr_rec expr_pop_rec(void)
 {
-    ExprRec empty;
+    expr_rec empty;
     empty.kind = EXPR_LITERAL;
     strcpy(empty.name, "0");
     if (expr_top_index >= 0)
@@ -70,8 +70,7 @@ int expr_depth(void)
     return expr_top_index + 1;
 }
 
-// ── Operator stack ────────────────────────────────────────────────────────────
-
+// Operator record
 static char *op_stack[MAX_STACK];
 static int op_top = -1;
 
@@ -85,92 +84,98 @@ static char *pop_op(void)
     return op_stack[op_top--];
 }
 
-// ── Output buffer + condition capture buffer ──────────────────────────────────
-
-static char body_buf[BUF_SIZE];
-static int  buf_pos = 0;
+// Output + condition capture buffer
+static char body_buf[BODY_BUF_SIZE];
+static int buf_pos = 0;
 
 static char cond_buf[COND_BUF_SIZE];
-static int  cond_buf_pos  = 0;
-static int  in_cond_capture = 0;
+static int cond_buf_pos = 0;
+static int in_cond_capture = 0;
 
 static void append(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
     if (in_cond_capture)
-        cond_buf_pos += vsnprintf(cond_buf + cond_buf_pos,
-                                  COND_BUF_SIZE - cond_buf_pos, fmt, args);
+        cond_buf_pos += vsnprintf(cond_buf + cond_buf_pos, COND_BUF_SIZE - cond_buf_pos, fmt, args);
     else
-        buf_pos += vsnprintf(body_buf + buf_pos,
-                             BUF_SIZE - buf_pos, fmt, args);
+        buf_pos += vsnprintf(body_buf + buf_pos, BODY_BUF_SIZE - buf_pos, fmt, args);
     va_end(args);
 }
 
-// ── Temp variables ────────────────────────────────────────────────────────────
-
+// Temp variables
 static int temp_count = 0;
 
 static char *new_temp(void)
 {
     char *buf = malloc(16);
-    sprintf(buf, "t%d", temp_count++);
+    sprintf(buf, "Temp%d", temp_count++ + 1);
     return buf;
 }
 
-// ── Symbol table ──────────────────────────────────────────────────────────────
+char *get_temp(void)
+{
+    char *buf = malloc(16);
+    sprintf(buf, "Temp%d", temp_count);
+    return buf;
+}
 
+// Symbol table
 static char *sym_table[MAX_SYMBOLS];
-static int   sym_count = 0;
+static int sym_count = 0;
 
-int act_lookup(char *s)
+static void to_uppercase(char *s)
+{
+    for (int i = 0; s[i] != '\0'; i++)
+        s[i] = (char)toupper((unsigned char)s[i]);
+}
+
+int lookup(char *s)
 {
     int i;
+    int result = 0;
+    char upper_s[128];
+    strncpy(upper_s, s, sizeof(upper_s) - 1);
+    upper_s[sizeof(upper_s) - 1] = '\0';
+    to_uppercase(upper_s);
     for (i = 0; i < sym_count; i++)
     {
-        if (strcmp(sym_table[i], s) == 0)
-            return 1;
+        if (strcmp(sym_table[i], upper_s) == 0)
+            result = 1;
     }
-    return 0;
+    return result;
 }
 
-void act_enter(char *s)
+void enter(char *s)
 {
-    if (!act_lookup(s) && sym_count < MAX_SYMBOLS)
-        sym_table[sym_count++] = strdup(s);
+    char upper_s[128];
+    strncpy(upper_s, s, sizeof(upper_s) - 1);
+    upper_s[sizeof(upper_s) - 1] = '\0';
+    to_uppercase(upper_s);
+    if (!lookup(s) && sym_count < MAX_SYMBOLS)
+        sym_table[sym_count++] = strdup(upper_s);
 }
 
-void act_check_id(char *s)
+void check_id(char *s)
 {
-    if (!act_lookup(s))
-        fprintf(g_listing_file,
-                "Semantic Error: variable '%s' used before assignment.\n", s);
+    if (!lookup(s))
+        fprintf(g_listing_file, "Semantic Error: variable '%s' used before assignment.\n", s);
 }
 
-// ── Assignment target ─────────────────────────────────────────────────────────
-
+// Assignment target
 static char current_lhs[128];
 
-// ── Lifecycle ─────────────────────────────────────────────────────────────────
-
-void act_init(void)
-{
-    buf_pos       = 0;
-    temp_count    = 0;
-    sym_count     = 0;
-    cond_buf_pos  = 0;
-    in_cond_capture = 0;
-}
-
-void act_start(void)
+// Generator
+void start(void)
 {
     time_t now = time(NULL);
     char *dt = ctime(&now);
 
     fprintf(g_output_file,
-        "// C program of %s\n"
-        "// Current Date and Time:\n"
-        "// %s"
+        "/*\n"
+        "C program of %s\n"
+        "%s"
+        "*/\n"
         "#include <stdio.h>\n"
         "int main()\n"
         "{\n",
@@ -179,38 +184,57 @@ void act_start(void)
     );
 }
 
-void act_finish(void)
+void generate(char *s[5])
 {
-    int i;
+    if (s[3] != NULL)
+        append("    %s = %s %s %s;\n", s[0], s[1], s[2], s[3]);
+    else
+        append("    %s = %s;\n", s[0], s[1]);
+}
 
-    for (i = 0; i < sym_count; i++)
+void finish(void)
+{
+    // Declare variables from symbol table (output file)
+    for (int i = 0; i < sym_count; i++)
         fprintf(g_output_file, "    int %s;\n", sym_table[i]);
 
-    for (i = 0; i < temp_count; i++)
-        fprintf(g_output_file, "    int t%d;\n", i);
+    // Declare temp variables (output file)
+    for (int i = 0; i < temp_count; i++)
+        fprintf(g_output_file, "    int Temp%d;\n", i + 1);
 
-    if (sym_count > 0 || temp_count > 0)
-        fprintf(g_output_file, "\n");
+    // Write body statements + error status (temp file)
+    fprintf(g_temp1_file, "%s", body_buf);
+    fprintf(g_temp1_file, "    return 0;\n}\n");
+    if (lexical_error_count == 0 && syntax_error_count == 0)
+        fprintf(g_temp1_file, "/* Program compiled without errors. */\n");
+    else
+        fprintf(g_temp1_file, "/* Program compiled with errors. */\n");
 
-    fprintf(g_output_file, "%s", body_buf);
-    fprintf(g_output_file, "\n    return 0;\n}\n");
+    // Stitch output and temp files together
+    char c;
+    rewind(g_temp1_file);
+    while ((c = fgetc(g_temp1_file)) != EOF)
+        fputc(c, g_output_file);
 }
 
-// ── Expression handling ───────────────────────────────────────────────────────
-
-void act_process_id(const char *id)
+// Expression handling
+void process_id(const char *id)
 {
-    act_check_id((char *)id);
-    act_enter((char *)id);
-    expr_push_rec(EXPR_ID, id);
+    char upper_id[128];
+    strncpy(upper_id, id, sizeof(upper_id) - 1);
+    upper_id[sizeof(upper_id) - 1] = '\0';
+    to_uppercase(upper_id);
+    check_id((char *)id);
+    enter((char *)id);
+    expr_push_rec(EXPR_ID, upper_id);
 }
 
-void act_process_literal(const char *lit)
+void process_literal(const char *lit)
 {
     expr_push_rec(EXPR_LITERAL, lit);
 }
 
-void act_process_op(const char *op)
+void process_op(const char *op)
 {
     if (strcmp(op, "=") == 0)
         push_op("==");
@@ -224,54 +248,58 @@ void act_process_op(const char *op)
         push_op(op);
 }
 
-void act_gen_infix(void)
+void gen_infix(void)
 {
-    ExprRec right = expr_pop_rec();
-    ExprRec left  = expr_pop_rec();
-    char   *op    = pop_op();
-    char   *tmp   = new_temp();
-
+    expr_rec right = expr_pop_rec();
+    expr_rec left = expr_pop_rec();
+    char *op = pop_op();
+    char *tmp = new_temp();
     append("    %s = %s %s %s;\n", tmp, left.name, op, right.name);
     expr_push_rec(EXPR_TEMP, tmp);
 }
 
-void act_gen_condition(void)
+void gen_condition(void)
 {
-    ExprRec top = expr_pop_rec();
+    expr_rec top = expr_pop_rec();
     expr_push_rec(EXPR_CONDITION, top.name);
 }
 
-// ── Statements ────────────────────────────────────────────────────────────────
-
+// Statements
 void act_start_assign(const char *id)
 {
-    act_enter((char *)id);
-    strcpy(current_lhs, id);
+    char upper_id[128];
+    strncpy(upper_id, id, sizeof(upper_id) - 1);
+    upper_id[sizeof(upper_id) - 1] = '\0';
+    to_uppercase(upper_id);
+    enter((char *)id);
+    strcpy(current_lhs, upper_id);
 }
 
 void act_assign(void)
 {
-    ExprRec rhs = expr_pop_rec();
+    expr_rec rhs = expr_pop_rec();
     append("    %s = %s;\n", current_lhs, rhs.name);
 }
 
 void act_read_id(const char *id)
 {
-    act_enter((char *)id);
-    append("    scanf(\"%%d\", &%s);\n", id);
+    char upper_id[128];
+    strncpy(upper_id, id, sizeof(upper_id) - 1);
+    upper_id[sizeof(upper_id) - 1] = '\0';
+    to_uppercase(upper_id);
+    enter((char *)id);
+    append("    scanf(\"%%d\", &%s);\n", upper_id);
 }
 
 void act_write_expr(void)
 {
-    ExprRec e = expr_pop_rec();
+    expr_rec e = expr_pop_rec();
     append("    printf(\"%%d\\n\", %s);\n", e.name);
 }
 
-// ── Control flow ──────────────────────────────────────────────────────────────
-
 void act_if_start(void)
 {
-    ExprRec cond = expr_pop_rec();
+    expr_rec cond = expr_pop_rec();
     append("    if (%s) {\n", cond.name);
 }
 
@@ -287,8 +315,8 @@ void act_endif(void)
 
 void act_open_temp(void)
 {
-    cond_buf_pos    = 0;
-    cond_buf[0]     = '\0';
+    cond_buf_pos = 0;
+    cond_buf[0] = '\0';
     in_cond_capture = 1;
 }
 
@@ -304,38 +332,15 @@ void act_write_tmp(void)
 
 void act_while_start(void)
 {
-    ExprRec cond = expr_pop_rec();
-
-    buf_pos += snprintf(body_buf + buf_pos, BUF_SIZE - buf_pos,
-                        "%s", cond_buf);
-
+    expr_rec cond = expr_pop_rec();
+    buf_pos += snprintf(body_buf + buf_pos, BODY_BUF_SIZE - buf_pos, "%s", cond_buf);
     append("    while (%s) {\n", cond.name);
 }
 
 void act_endwhile(void)
 {
-    buf_pos += snprintf(body_buf + buf_pos, BUF_SIZE - buf_pos,
-                        "%s", cond_buf);
-
+    buf_pos += snprintf(body_buf + buf_pos, BODY_BUF_SIZE - buf_pos, "%s", cond_buf);
     append("    }\n");
-
     cond_buf[0]  = '\0';
     cond_buf_pos = 0;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-void act_generate(char *s[5])
-{
-    if (s[3] != NULL)
-        append("    %s = %s %s %s;\n", s[0], s[1], s[2], s[3]);
-    else
-        append("    %s = %s;\n", s[0], s[1]);
-}
-
-char *act_get_temp(void)
-{
-    char *buf = malloc(16);
-    sprintf(buf, "t%d", temp_count - 1);
-    return buf;
 }
