@@ -96,14 +96,10 @@ void statement(void)
         case ID:
             strcpy(temp, token_buffer);
             match(ID);
-
             act_start_assign(temp);
-
             match(ASSIGNOP);
             expression();
-
             act_assign();
-
             match(SEMICOLON);
             break;
 
@@ -126,17 +122,14 @@ void statement(void)
         case WRITE:
             match(WRITE);
             match(LPAREN);
-
             expression();
             act_write_expr();
-
             while (next_token() == COMMA)
             {
                 match(COMMA);
                 expression();
                 act_write_expr();
             }
-
             match(RPAREN);
             match(SEMICOLON);
             break;
@@ -144,22 +137,17 @@ void statement(void)
         case IF:
             match(IF);
             match(LPAREN);
-
             condition();
             act_if_start();
-
             match(RPAREN);
             match(THEN);
-
             statement_list();
-
             if (next_token() == ELSE)
             {
                 match(ELSE);
                 act_else();
                 statement_list();
             }
-
             match(ENDIF);
             act_endif();
             break;
@@ -167,16 +155,11 @@ void statement(void)
         case WHILE:
             match(WHILE);
             match(LPAREN);
-
-            act_open_temp();
+            open_temp();
             condition();
-            act_write_tmp();
-            act_while_start();
-
             match(RPAREN);
-
+            write_temp();
             statement_list();
-
             match(ENDWHILE);
             act_endwhile();
             break;
@@ -202,7 +185,6 @@ void expression(void)
         strcpy(op, token_buffer);
         add_op();
         process_op(op);
-
         term();
         gen_infix();
     }
@@ -218,7 +200,6 @@ void term(void)
         strcpy(op, token_buffer);
         mult_op();
         process_op(op);
-
         factor();
         gen_infix();
     }
@@ -274,9 +255,7 @@ void condition(void)
         char op[32];
         strcpy(op, token_buffer);
         match(next_token());
-
         process_op(op);
-
         c_expression();
         gen_infix();
     }
@@ -293,9 +272,7 @@ void c_expression(void)
         char op[32];
         strcpy(op, token_buffer);
         rel_op();
-
         process_op(op);
-
         c_term();
         gen_infix();
     }
@@ -310,9 +287,7 @@ void c_term(void)
         char op[32];
         strcpy(op, token_buffer);
         add_op();
-
         process_op(op);
-
         c_factor();
         gen_infix();
     }
@@ -327,9 +302,7 @@ void c_factor(void)
         char op[32];
         strcpy(op, token_buffer);
         mult_op();
-
         process_op(op);
-
         c_primary();
         gen_infix();
     }

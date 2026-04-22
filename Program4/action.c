@@ -15,10 +15,26 @@
 #define BODY_BUF_SIZE 262144
 #define COND_BUF_SIZE 4096
 
-// Expression record
+// Records
 static expr_rec expr_stack[MAX_STACK];
 static int expr_top_index = -1;
+static char *op_stack[MAX_STACK];
+static int op_top = -1;
 
+// String buffers
+static char body_buf[BODY_BUF_SIZE];
+static int body_buf_pos;
+static char cond_buf[COND_BUF_SIZE];
+static int cond_buf_pos;
+static int in_cond_capture;
+static char current_lhs[128];
+
+// Symbols
+static int temp_count;
+static char *sym_table[MAX_SYMBOLS];
+static int sym_count;
+
+// Expression record
 void expr_push(const char *s)
 {
     if (expr_top_index < MAX_STACK - 1)
@@ -65,9 +81,6 @@ int expr_depth(void)
 }
 
 // Operator record
-static char *op_stack[MAX_STACK];
-static int op_top = -1;
-
 static void push_op(const char *op)
 {
     op_stack[++op_top] = strdup(op);
@@ -75,17 +88,11 @@ static void push_op(const char *op)
 
 static char *pop_op(void)
 {
+    if (op_top < 0) return "";
     return op_stack[op_top--];
 }
 
 // Output + condition capture buffer
-static char body_buf[BODY_BUF_SIZE];
-static int buf_pos = 0;
-
-static char cond_buf[COND_BUF_SIZE];
-static int cond_buf_pos = 0;
-static int in_cond_capture = 0;
-
 static void append(const char *fmt, ...)
 {
     va_list args;
@@ -93,13 +100,11 @@ static void append(const char *fmt, ...)
     if (in_cond_capture)
         cond_buf_pos += vsnprintf(cond_buf + cond_buf_pos, COND_BUF_SIZE - cond_buf_pos, fmt, args);
     else
-        buf_pos += vsnprintf(body_buf + buf_pos, BODY_BUF_SIZE - buf_pos, fmt, args);
+        body_buf_pos += vsnprintf(body_buf + body_buf_pos, BODY_BUF_SIZE - body_buf_pos, fmt, args);
     va_end(args);
 }
 
 // Temp variables
-static int temp_count = 0;
-
 static char *new_temp(void)
 {
     char *buf = malloc(16);
@@ -115,9 +120,6 @@ char *get_temp(void)
 }
 
 // Symbol table
-static char *sym_table[MAX_SYMBOLS];
-static int sym_count = 0;
-
 static void to_uppercase(char *s)
 {
     for (int i = 0; s[i] != '\0'; i++)
@@ -156,15 +158,18 @@ void check_id(char *s)
         fprintf(g_listing_file, "Semantic Error: variable '%s' used before assignment.\n", s);
 }
 
-// Assignment target
-static char current_lhs[128];
-
 // Generator
 void start(void)
 {
+    body_buf_pos = 0;
+    cond_buf_pos = 0;
+    in_cond_capture = 0;
+    temp_count = 0;
+    sym_count = 0;
+
+    // Initialize output file with comment and main()
     time_t now = time(NULL);
     char *dt = ctime(&now);
-
     fprintf(g_output_file,
         "/*\n"
         "C program of %s\n"
@@ -196,13 +201,23 @@ void finish(void)
     for (int i = 0; i < temp_count; i++)
         fprintf(g_output_file, "    int Temp%d;\n", i + 1);
 
-    // Write body statements + error status (temp file)
+    // Write statements (temp1 file)
     fprintf(g_temp1_file, "%s", body_buf);
     fprintf(g_temp1_file, "    return 0;\n}\n");
+
+    // Error summary (temp1 + listing file)
+    fprintf(g_listing_file, "Total number of Lexical Errors: %d\n", lexical_error_count);
+    fprintf(g_listing_file, "Total number of Syntax Errors: %d\n", syntax_error_count);
     if (lexical_error_count == 0 && syntax_error_count == 0)
+    {
         fprintf(g_temp1_file, "/* Program compiled without errors. */\n");
+        fprintf(g_listing_file, "Program compiled without errors.\n");
+    }
     else
+    {
         fprintf(g_temp1_file, "/* Program compiled with errors. */\n");
+        fprintf(g_listing_file, "Program compiled with errors.\n");
+    }
 
     // Stitch output and temp files together
     char c;
@@ -307,33 +322,24 @@ void act_endif(void)
     append("    }\n");
 }
 
-void act_open_temp(void)
+void open_temp(void)
 {
     cond_buf_pos = 0;
     cond_buf[0] = '\0';
     in_cond_capture = 1;
 }
 
-void act_write_tmp(void)
-{
-    in_cond_capture = 0;
-    if (g_temp1_file != NULL)
-    {
-        fprintf(g_temp1_file, "%s", cond_buf);
-        fflush(g_temp1_file);
-    }
-}
-
-void act_while_start(void)
+void write_temp(void)
 {
     expr_rec cond = expr_pop_rec();
-    buf_pos += snprintf(body_buf + buf_pos, BODY_BUF_SIZE - buf_pos, "%s", cond_buf);
+    in_cond_capture = 0;
+    body_buf_pos += snprintf(body_buf + body_buf_pos, BODY_BUF_SIZE - body_buf_pos, "%s", cond_buf);
+    fprintf(g_temp2_file, "%s", cond_buf);
     append("    while (%s) {\n", cond.name);
 }
 
 void act_endwhile(void)
 {
-    buf_pos += snprintf(body_buf + buf_pos, BODY_BUF_SIZE - buf_pos, "%s", cond_buf);
     append("    }\n");
     cond_buf[0]  = '\0';
     cond_buf_pos = 0;

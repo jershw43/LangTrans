@@ -279,13 +279,9 @@ void backup_output()
     strcpy(backup_name, g_output_filename);
     dot = strrchr(backup_name, '.');
     if (dot != NULL)
-    {
         strcpy(dot, BAK);
-    }
     else
-    {
         strcat(backup_name, BAK);
-    }
     
     // Remove old backup if it exists
     remove(backup_name);
@@ -297,7 +293,6 @@ void backup_output()
 int file_open(FILE **file, const char *filename, const char *mode, int *is_opened)
 {
     int result = 0;
-
     if (file != NULL && filename != NULL && mode != NULL && is_opened != NULL)
     {
         *file = fopen(filename, mode);
@@ -311,7 +306,6 @@ int file_open(FILE **file, const char *filename, const char *mode, int *is_opene
             *is_opened = 0;
         }
     }
-
     return result;
 }
 

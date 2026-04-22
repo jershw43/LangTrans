@@ -34,9 +34,8 @@ void act_write_expr(void);
 void act_if_start(void);
 void act_else(void);
 void act_endif(void);
-void act_while_start(void);
+void open_temp(void);
+void write_temp(void);
 void act_endwhile(void);
-void act_open_temp(void);
-void act_write_tmp(void);
 
 #endif
