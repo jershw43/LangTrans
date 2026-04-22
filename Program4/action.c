@@ -35,18 +35,7 @@ static char *sym_table[MAX_SYMBOLS];
 static int sym_count;
 
 // Expression record
-void expr_push(const char *s)
-{
-    if (expr_top_index < MAX_STACK - 1)
-    {
-        expr_top_index++;
-        expr_stack[expr_top_index].kind = EXPR_TEMP;
-        strncpy(expr_stack[expr_top_index].name, s, sizeof(expr_stack[expr_top_index].name) - 1);
-        expr_stack[expr_top_index].name[127] = '\0';
-    }
-}
-
-static void expr_push_rec(expr_type kind, const char *s)
+static void push_expr(expr_type kind, const char *s)
 {
     if (expr_top_index < MAX_STACK - 1)
     {
@@ -57,27 +46,12 @@ static void expr_push_rec(expr_type kind, const char *s)
     }
 }
 
-static expr_rec expr_pop_rec(void)
+static expr_rec pop_expr(void)
 {
     expr_rec empty;
     empty.kind = EXPR_LITERAL;
     strcpy(empty.name, "0");
     return (expr_top_index >= 0) ? expr_stack[expr_top_index--] : empty;
-}
-
-char *expr_pop(void)
-{
-    return (expr_top_index >= 0) ? expr_stack[expr_top_index--].name : NULL;
-}
-
-char *expr_top(void)
-{
-    return (expr_top_index >= 0) ? expr_stack[expr_top_index].name : NULL;
-}
-
-int expr_depth(void)
-{
-    return expr_top_index + 1;
 }
 
 // Operator record
@@ -235,42 +209,37 @@ void process_id(const char *id)
     to_uppercase(upper_id);
     check_id((char *)id);
     enter((char *)id);
-    expr_push_rec(EXPR_ID, upper_id);
+    push_expr(EXPR_ID, upper_id);
 }
 
 void process_literal(const char *lit)
 {
-    expr_push_rec(EXPR_LITERAL, lit);
+    push_expr(EXPR_LITERAL, lit);
 }
 
 void process_op(const char *op)
 {
-    if (strcmp(op, "=") == 0)
-        push_op("==");
-    else if (strcmp(op, "<>") == 0)
-        push_op("!=");
-    else if (strcasecmp(op, "and") == 0)
-        push_op("&&");
-    else if (strcasecmp(op, "or") == 0)
-        push_op("||");
-    else
-        push_op(op);
+    if      (strcmp(op, "=") == 0)       push_op("==");
+    else if (strcmp(op, "<>") == 0)      push_op("!=");
+    else if (strcasecmp(op, "and") == 0) push_op("&&");
+    else if (strcasecmp(op, "or") == 0)  push_op("||");
+    else                                 push_op(op);
 }
 
 void gen_infix(void)
 {
-    expr_rec right = expr_pop_rec();
-    expr_rec left = expr_pop_rec();
+    expr_rec right = pop_expr();
+    expr_rec left = pop_expr();
     char *op = pop_op();
     char *tmp = new_temp();
     append("    %s = %s %s %s;\n", tmp, left.name, op, right.name);
-    expr_push_rec(EXPR_TEMP, tmp);
+    push_expr(EXPR_TEMP, tmp);
 }
 
 void gen_condition(void)
 {
-    expr_rec top = expr_pop_rec();
-    expr_push_rec(EXPR_CONDITION, top.name);
+    expr_rec top = pop_expr();
+    push_expr(EXPR_CONDITION, top.name);
 }
 
 // Statements
@@ -286,7 +255,7 @@ void act_start_assign(const char *id)
 
 void act_assign(void)
 {
-    expr_rec rhs = expr_pop_rec();
+    expr_rec rhs = pop_expr();
     append("    %s = %s;\n", current_lhs, rhs.name);
 }
 
@@ -302,13 +271,13 @@ void act_read_id(const char *id)
 
 void act_write_expr(void)
 {
-    expr_rec e = expr_pop_rec();
+    expr_rec e = pop_expr();
     append("    printf(\"%%d\\n\", %s);\n", e.name);
 }
 
 void act_if_start(void)
 {
-    expr_rec cond = expr_pop_rec();
+    expr_rec cond = pop_expr();
     append("    if (%s) {\n", cond.name);
 }
 
@@ -331,7 +300,7 @@ void open_temp(void)
 
 void write_temp(void)
 {
-    expr_rec cond = expr_pop_rec();
+    expr_rec cond = pop_expr();
     in_cond_capture = 0;
     body_buf_pos += snprintf(body_buf + body_buf_pos, BODY_BUF_SIZE - body_buf_pos, "%s", cond_buf);
     fprintf(g_temp2_file, "%s", cond_buf);
